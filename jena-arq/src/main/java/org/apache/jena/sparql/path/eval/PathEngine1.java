@@ -149,11 +149,6 @@ final class PathEngine1 extends PathEngine
 
     @Override
     protected void doFixedLengthPath(Path pathStep, Node node, long fixedLength, Collection<Node> output) {
-        // Special for small?
-        // if ( fixedLength < 3 )
-        // {}
-        Collection<Node> visited = collector() ;
-
         if ( fixedLength == 0 ) {
             doZero(pathStep, node, output) ;
             return ;
@@ -198,8 +193,6 @@ final class PathEngine1 extends PathEngine
     }
 
     private void ALP1(boolean forwardMode, int stepCount, int maxStepCount, Node node, Path path, Collection<Node> visited) {
-        if ( false )
-            System.out.printf("ALP1 node=%s\n   visited=%s\n   output=%s\n", node, visited) ;
         if ( maxStepCount >= 0 && stepCount > maxStepCount )
             return ;
         if ( visited.contains(node) )
