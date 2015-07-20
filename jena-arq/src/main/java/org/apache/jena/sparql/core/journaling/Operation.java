@@ -27,11 +27,9 @@ public interface Operation<DataType, Upon> {
 	public static interface InvertibleOperation<DataType, Upon> extends Operation<DataType, Upon> {
 
 		/**
-		 * Creates an inverse operation for this data. If this operation and then the result of {@link #inverse()} are
-		 * run in sequence against a service without intervening operations, no change should result. Note that this may
-		 * not be true if the inverse is run first.
+		 * Creates an inverse operation for this data.
 		 *
-		 * @return the inverse of this operation on the same data
+		 * @return the inverse of this operation on the same data and against the same type of service.
 		 */
 		InvertibleOperation<DataType, Upon> inverse();
 

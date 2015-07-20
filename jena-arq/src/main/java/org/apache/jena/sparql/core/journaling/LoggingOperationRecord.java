@@ -4,6 +4,10 @@ import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 
+/**
+ * A simple {@link OperationRecord} that logs operations to a {@link Logger}.
+ *
+ */
 public class LoggingOperationRecord implements OperationRecord<QuadOperation> {
 
 	private final Logger log;
