@@ -3,14 +3,17 @@ package org.apache.jena.sparql.core.journaling;
 import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.query.ReadWrite.WRITE;
 
+import java.util.ArrayList;
 import java.util.function.Consumer;
 
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
+import org.apache.jena.mem.GraphMem;
 import org.apache.jena.sparql.JenaTransactionException;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.core.DatasetGraphWithLock;
 import org.apache.jena.sparql.core.Quad;
+import org.apache.jena.sparql.core.journaling.OperationRecord.ReversibleOperationRecord;
 import org.apache.jena.sparql.core.journaling.QuadOperation.QuadAddition;
 import org.apache.jena.sparql.core.journaling.QuadOperation.QuadDeletion;
 
@@ -26,7 +29,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	/**
 	 * A record of operations for use in rewinding transactions.
 	 */
-	private final ReversableOperationRecord<QuadOperation> record;
+	private ReversibleOperationRecord<QuadOperation> record = new ListBackedOperationRecord<>(new ArrayList<>());
 
 	/**
 	 * Indicates whether an transaction abort is in progress.
@@ -51,14 +54,28 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 		aborting.set(false);
 	}
 
-	public DatasetGraphWithRecord(final DatasetGraph dsg, final ReversableOperationRecord<QuadOperation> record) {
+	public DatasetGraphWithRecord(final DatasetGraph dsg) {
+		super(dsg);
+	}
+
+	public DatasetGraphWithRecord(final DatasetGraph dsg, final ReversibleOperationRecord<QuadOperation> record) {
 		super(dsg);
 		this.record = record;
 	}
 
 	@Override
 	public void addGraph(final Node graphName, final Graph graph) {
-		if (!graph.isEmpty()) graph.find(ANY, ANY, ANY).forEachRemaining(t -> add(new Quad(graphName, t)));
+		if (isInTransaction()) {
+			if (isTransactionType(WRITE)) {
+				// create an empty graph in the backing store
+				super.addGraph(graphName, new GraphMem());
+				// copy all triples into it
+				graph.find(ANY, ANY, ANY).forEachRemaining(t -> add(new Quad(graphName, t)));
+
+			}
+			else throw new JenaTransactionException("Tried to write in a READ transaction!");
+		}
+		else throw new JenaTransactionException("Tried to write outside of a transaction!");
 	}
 
 	@Override
@@ -69,12 +86,12 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 
 	@Override
 	public void add(final Quad quad) {
-		operate(quad, _add());
+		operate(quad, _add);
 	}
 
 	@Override
 	public void delete(final Quad quad) {
-		operate(quad, _delete());
+		operate(quad, _delete);
 	}
 
 	/**
@@ -92,28 +109,24 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	}
 
 	/**
-	 * @return a mutator that adds a quad to this dataset
+	 * A mutator that adds a quad to this dataset.
 	 */
-	private final Consumer<Quad> _add() {
-		return quad -> {
-			if (!contains(quad)) {
-				super.add(quad);
-				if (!isAborting()) record.add(new QuadAddition(quad));
-			}
-		};
-	}
+	private final Consumer<Quad> _add = quad -> {
+		if (!contains(quad)) {
+			super.add(quad);
+			if (!isAborting()) record.add(new QuadAddition(quad));
+		}
+	};
 
 	/**
-	 * @return a mutator that deletes a quad from this dataset
+	 * A mutator that deletes a quad from this dataset.
 	 */
-	private final Consumer<Quad> _delete() {
-		return quad -> {
-			if (contains(quad)) {
-				super.delete(quad);
-				if (!isAborting()) record.add(new QuadDeletion(quad));
-			}
-		};
-	}
+	private final Consumer<Quad> _delete = quad -> {
+		if (contains(quad)) {
+			super.delete(quad);
+			if (!isAborting()) record.add(new QuadDeletion(quad));
+		}
+	};
 
 	@Override
 	public void add(final Node g, final Node s, final Node p, final Node o) {
@@ -149,20 +162,21 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 
 	@Override
 	protected void _abort() {
-		try {
-			startAborting();
-			if (isInTransaction() && isTransactionType(WRITE))
-				record.reverse().consume(op -> op.inverse().actOn(this));
-			else record.clear();
-			super._abort();
-		} finally {
-			stopAborting();
-		}
+		_end();
 	}
 
 	@Override
 	protected void _end() {
-		if (isInTransaction() && isTransactionType(WRITE)) abort();
+		if (isInTransaction() && isTransactionType(WRITE)) {
+			try {
+				startAborting();
+				if (isInTransaction() && isTransactionType(WRITE))
+					record.reverse().consume(op -> op.inverse().actOn(this));
+			} finally {
+				stopAborting();
+			}
+		}
+		record.clear();
 		super._end();
 	}
 
