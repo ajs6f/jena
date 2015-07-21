@@ -4,6 +4,10 @@ import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.graph.NodeFactory.createURI;
 import static org.apache.jena.query.ReadWrite.READ;
 import static org.apache.jena.query.ReadWrite.WRITE;
+import static org.apache.jena.sparql.core.DatasetGraphFactory.createMem;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,15 +17,15 @@ import org.apache.jena.mem.GraphMem;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.sparql.JenaTransactionException;
+import org.apache.jena.sparql.core.AbstractDatasetGraphTests;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.core.DatasetGraphMap;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Transactional;
 import org.apache.jena.sparql.core.journaling.QuadOperation.QuadDeletion;
-import org.junit.Assert;
 import org.junit.Test;
 
-public class TestDatasetGraphWithRecord extends Assert {
+public class TestDatasetGraphWithRecord extends AbstractDatasetGraphTests {
 	private static final Node graphName = createURI("some-graph");
 	private static final Node subject1 = createURI("subject1");
 	private static final Node subject2 = createURI("subject2");
@@ -31,6 +35,11 @@ public class TestDatasetGraphWithRecord extends Assert {
 	private static final Quad q1 = new Quad(graphName, subject1, predicate, object1);
 	private static final Quad q2 = new Quad(graphName, subject1, predicate, object2);
 	private static final Quad q3 = new Quad(graphName, subject2, predicate, object2);
+
+	@Override
+	protected DatasetGraph emptyDataset() {
+		return new DatasetGraphWithRecord(createMem());
+	}
 
 	/**
 	 * Adding a graph via {@link DatasetGraphWithRecord#addGraph(Node, org.apache.jena.graph.Graph)} should copy the
@@ -42,8 +51,7 @@ public class TestDatasetGraphWithRecord extends Assert {
 		graph.add(q1.asTriple());
 		graph.add(q2.asTriple());
 
-		final DatasetGraph realDsg = new DatasetGraphWithRecord(new DatasetGraphMap(new GraphMem()));
-		final Dataset dataset = DatasetFactory.create(realDsg);
+		final Dataset dataset = DatasetFactory.create(emptyDataset());
 		final DatasetGraph dsg = dataset.asDatasetGraph();
 
 		dataset.begin(WRITE);
@@ -68,8 +76,7 @@ public class TestDatasetGraphWithRecord extends Assert {
 	 */
 	@Test
 	public void testSimpleAbort() {
-		final DatasetGraph realDsg = new DatasetGraphWithRecord(new DatasetGraphMap(new GraphMem()));
-		final Dataset dataset = DatasetFactory.create(realDsg);
+		final Dataset dataset = DatasetFactory.create(emptyDataset());
 		final DatasetGraph dsg = dataset.asDatasetGraph();
 
 		dataset.begin(WRITE);
@@ -83,12 +90,16 @@ public class TestDatasetGraphWithRecord extends Assert {
 		try {
 			dataset.begin(WRITE);
 			dsg.add(q2);
+			dsg.add(q3);
+			dsg.delete(q3);
+			dsg.add(q3);
 			dataset.abort();
 		} finally {
 			dataset.end();
 		}
 		assertTrue(dsg.contains(q1));
 		assertFalse(dsg.contains(q2));
+		assertFalse(dsg.contains(q3));
 		dataset.close();
 	}
 
@@ -98,9 +109,8 @@ public class TestDatasetGraphWithRecord extends Assert {
 	@Test
 	public void testRecordShouldBeCompact() {
 		final List<QuadOperation> record = new ArrayList<>();
-		final DatasetGraph realDsg = new DatasetGraphWithRecord(new DatasetGraphMap(new GraphMem()),
-				new ListBackedOperationRecord<>(record));
-		final Dataset dataset = DatasetFactory.create(realDsg);
+		final Dataset dataset = DatasetFactory.create(new DatasetGraphWithRecord(new DatasetGraphMap(new GraphMem()),
+				new ListBackedOperationRecord<>(record)));
 		final DatasetGraph dsg = dataset.asDatasetGraph();
 
 		dataset.begin(WRITE);
@@ -126,36 +136,11 @@ public class TestDatasetGraphWithRecord extends Assert {
 	}
 
 	/**
-	 * {@link DatasetGraphWithRecord} can only be mutated within a transaction.
-	 */
-	@Test(expected = JenaTransactionException.class)
-	public void testDatasetGraphWithRecordIsTransactionalOnlyForGraphWrites() {
-		final DatasetGraph realDsg = new DatasetGraphWithRecord(new DatasetGraphMap(new GraphMem()));
-		final Dataset dataset = DatasetFactory.create(realDsg);
-		final DatasetGraph dsg = dataset.asDatasetGraph();
-
-		dsg.addGraph(graphName, new GraphMem());
-	}
-
-	/**
-	 * {@link DatasetGraphWithRecord} can only be mutated within a transaction.
-	 */
-	@Test(expected = JenaTransactionException.class)
-	public void testDatasetGraphWithRecordIsTransactionalOnlyForTupleWrites() {
-		final DatasetGraph realDsg = new DatasetGraphWithRecord(new DatasetGraphMap(new GraphMem()));
-		final Dataset dataset = DatasetFactory.create(realDsg);
-		final DatasetGraph dsg = dataset.asDatasetGraph();
-
-		dsg.add(q1);
-	}
-
-	/**
 	 * {@link DatasetGraphWithRecord} can only be mutated within a WRITE transaction.
 	 */
 	@Test(expected = JenaTransactionException.class)
 	public void testDatasetGraphWithRecordIsWriteTransactionalOnlyForGraphWrites() {
-		final DatasetGraph realDsg = new DatasetGraphWithRecord(new DatasetGraphMap(new GraphMem()));
-		final Dataset dataset = DatasetFactory.create(realDsg);
+		final Dataset dataset = DatasetFactory.create(emptyDataset());
 		final DatasetGraph dsg = dataset.asDatasetGraph();
 
 		dataset.begin(READ);
@@ -171,8 +156,7 @@ public class TestDatasetGraphWithRecord extends Assert {
 	 */
 	@Test(expected = JenaTransactionException.class)
 	public void testDatasetGraphWithRecordIsWriteTransactionalOnlyForTupleWrites() {
-		final DatasetGraph realDsg = new DatasetGraphWithRecord(new DatasetGraphMap(new GraphMem()));
-		final Dataset dataset = DatasetFactory.create(realDsg);
+		final Dataset dataset = DatasetFactory.create(emptyDataset());
 		final DatasetGraph dsg = dataset.asDatasetGraph();
 
 		dataset.begin(READ);
@@ -185,8 +169,7 @@ public class TestDatasetGraphWithRecord extends Assert {
 
 	@Test
 	public void testRemoveGraph() {
-		final DatasetGraph realDsg = new DatasetGraphWithRecord(new DatasetGraphMap(new GraphMem()));
-		final Dataset dataset = DatasetFactory.create(realDsg);
+		final Dataset dataset = DatasetFactory.create(emptyDataset());
 		final DatasetGraph dsg = dataset.asDatasetGraph();
 
 		dataset.begin(WRITE);
@@ -214,9 +197,8 @@ public class TestDatasetGraphWithRecord extends Assert {
 	@Test
 	public void testClear() {
 		final List<QuadOperation> record = new ArrayList<>();
-		final DatasetGraph realDsg = new DatasetGraphWithRecord(new DatasetGraphMap(new GraphMem()),
-				new ListBackedOperationRecord<>(record));
-		final Dataset dataset = DatasetFactory.create(realDsg);
+		final Dataset dataset = DatasetFactory.create(new DatasetGraphWithRecord(new DatasetGraphMap(new GraphMem()),
+				new ListBackedOperationRecord<>(record)));
 		final DatasetGraph dsg = dataset.asDatasetGraph();
 
 		dataset.begin(WRITE);
