@@ -17,7 +17,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class TestListBackedOperationRecord extends Assert {
 
-	private static interface MockOp extends InvertibleOperation<Object, Object> {
+	private static interface MockOp extends InvertibleOperation<Object, Object, MockOp, MockOp> {
 	}
 
 	@Mock
@@ -45,7 +45,8 @@ public class TestListBackedOperationRecord extends Assert {
 	@Test
 	public void testConsume() {
 		ListBackedOperationRecord<MockOp> testRecord = new ListBackedOperationRecord<>(ops);
-		testRecord.consume(op -> {}); // /dev/null
+		testRecord.consume(op -> {
+		}); // /dev/null
 		assertTrue(ops.isEmpty());
 		// now let's try with a problematic consumer
 		ops = new ArrayList<>(asList(mockOp1, mockOp2, mockOp3));

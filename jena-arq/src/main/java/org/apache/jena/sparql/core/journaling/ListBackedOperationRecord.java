@@ -8,7 +8,7 @@ import org.apache.jena.ext.com.google.common.collect.Lists;
 import org.apache.jena.sparql.core.journaling.Operation.InvertibleOperation;
 import org.apache.jena.sparql.core.journaling.OperationRecord.ReversibleOperationRecord;
 
-public class ListBackedOperationRecord<OpType extends InvertibleOperation<?, ?>>
+public class ListBackedOperationRecord<OpType extends InvertibleOperation<?, ?, ?, ?>>
 		implements ReversibleOperationRecord<OpType> {
 
 	/**

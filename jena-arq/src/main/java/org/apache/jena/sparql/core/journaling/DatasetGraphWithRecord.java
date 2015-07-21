@@ -15,6 +15,7 @@ import org.apache.jena.mem.GraphMem;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.JenaTransactionException;
 import org.apache.jena.sparql.core.DatasetGraph;
+import org.apache.jena.sparql.core.DatasetGraphBase;
 import org.apache.jena.sparql.core.DatasetGraphWithLock;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.journaling.OperationRecord.ReversibleOperationRecord;
@@ -27,6 +28,9 @@ import org.apache.jena.sparql.core.journaling.QuadOperation.QuadDeletion;
  * backwards. Second, this class has "copy-on-add" semantics for {@link #addGraph(Node, Graph)}. This means that the
  * transactional semantics of a given {@link Graph} are discarded on add and replaced with those of this class, so that
  * transactional semantics are uniform and therefore useful.
+ *
+ * This class inherits locking semantics from the class which is used as a backing store for it. To use MRSW semantics,
+ * choose a backing store that subclasses {@link DatasetGraphBase}.
  */
 public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 
