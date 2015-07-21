@@ -1,5 +1,6 @@
 package org.apache.jena.sparql.core.journaling;
 
+import static org.apache.jena.ext.com.google.common.collect.Lists.newArrayList;
 import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.query.ReadWrite.WRITE;
 
@@ -95,7 +96,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	};
 
 	/**
-	 * A mutator that adds a graph to this dataset.
+	 * A mutator that removes a graph from this dataset.
 	 */
 	private final BiConsumer<Node, Graph> _removeGraph = (graphName, graph) -> {
 		// delete all triples in this graph in the backing store
@@ -165,7 +166,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 
 	@Override
 	public void deleteAny(final Node g, final Node s, final Node p, final Node o) {
-		find(g, s, p, o).forEachRemaining(this::delete);
+		newArrayList(find(g, s, p, o)).forEach(this::delete);
 	}
 
 	@Override
