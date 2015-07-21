@@ -4,6 +4,7 @@ import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.query.ReadWrite.WRITE;
 
 import java.util.ArrayList;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.apache.jena.graph.Graph;
@@ -64,27 +65,6 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	}
 
 	@Override
-	public void addGraph(final Node graphName, final Graph graph) {
-		if (isInTransaction()) {
-			if (isTransactionType(WRITE)) {
-				// create an empty graph in the backing store
-				super.addGraph(graphName, new GraphMem());
-				// copy all triples into it
-				graph.find(ANY, ANY, ANY).forEachRemaining(t -> add(new Quad(graphName, t)));
-
-			}
-			else throw new JenaTransactionException("Tried to write in a READ transaction!");
-		}
-		else throw new JenaTransactionException("Tried to write outside of a transaction!");
-	}
-
-	@Override
-	public void removeGraph(final Node graphName) {
-		deleteAny(graphName, ANY, ANY, ANY);
-		super.removeGraph(graphName);
-	}
-
-	@Override
 	public void add(final Quad quad) {
 		operate(quad, _add);
 	}
@@ -94,19 +74,35 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 		operate(quad, _delete);
 	}
 
-	/**
-	 * Wraps a mutation to the state of this dataset with guards.
-	 *
-	 * @param quad the quad with which to mutate this dataset
-	 * @param mutator the kind of change to make
-	 */
-	private void operate(final Quad quad, final Consumer<Quad> mutator) {
-		if (isInTransaction())
-			if (isTransactionType(WRITE))
-				mutator.accept(quad);
-			else throw new JenaTransactionException("Tried to write in a READ transaction!");
-		else throw new JenaTransactionException("Tried to write outside of a transaction!");
+	@Override
+	public void addGraph(final Node graphName, final Graph graph) {
+		operateOnGraph(graphName, graph, _addGraph);
 	}
+
+	@Override
+	public void removeGraph(final Node graphName) {
+		operateOnGraph(graphName, null, _removeGraph);
+	}
+
+	/**
+	 * A mutator that adds a graph to this dataset.
+	 */
+	private final BiConsumer<Node, Graph> _addGraph = (graphName, graph) -> {
+		// create an empty graph in the backing store
+		super.addGraph(graphName, new GraphMem());
+		// copy all triples into it
+		graph.find(ANY, ANY, ANY).forEachRemaining(t -> add(new Quad(graphName, t)));
+	};
+
+	/**
+	 * A mutator that adds a graph to this dataset.
+	 */
+	private final BiConsumer<Node, Graph> _removeGraph = (graphName, graph) -> {
+		// delete all triples in this graph in the backing store
+		deleteAny(graphName, ANY, ANY, ANY);
+		// remove the graph itself
+		super.removeGraph(graphName);
+	};
 
 	/**
 	 * A mutator that adds a quad to this dataset.
@@ -127,6 +123,35 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 			if (!isAborting()) record.add(new QuadDeletion(quad));
 		}
 	};
+
+	/**
+	 * Wraps a mutation to the state of this dataset with guards.
+	 *
+	 * @param quad the quad with which to mutate this dataset
+	 * @param mutator the kind of change to make
+	 */
+	private void operate(final Quad quad, final Consumer<Quad> mutator) {
+		if (isInTransaction())
+			if (isTransactionType(WRITE))
+				mutator.accept(quad);
+			else throw new JenaTransactionException("Tried to write in a READ transaction!");
+		else throw new JenaTransactionException("Tried to write outside of a transaction!");
+	}
+
+	/**
+	 * Wraps a mutation to the state of this dataset with guards.
+	 *
+	 * @param graphName the name of the graph on which to operate
+	 * @param graph the graph on which to operate
+	 * @param mutator the kind of change to make
+	 */
+	private void operateOnGraph(final Node graphName, final Graph graph, final BiConsumer<Node, Graph> mutator) {
+		if (isInTransaction())
+			if (isTransactionType(WRITE))
+				mutator.accept(graphName, graph);
+			else throw new JenaTransactionException("Tried to write in a READ transaction!");
+		else throw new JenaTransactionException("Tried to write outside of a transaction!");
+	}
 
 	@Override
 	public void add(final Node g, final Node s, final Node p, final Node o) {
@@ -170,8 +195,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 		if (isInTransaction() && isTransactionType(WRITE)) {
 			try {
 				startAborting();
-				if (isInTransaction() && isTransactionType(WRITE))
-					record.reverse().consume(op -> op.inverse().actOn(this));
+				record.reverse().consume(op -> op.inverse().actOn(this));
 			} finally {
 				stopAborting();
 			}

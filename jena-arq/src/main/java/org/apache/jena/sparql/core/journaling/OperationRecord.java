@@ -33,8 +33,7 @@ public interface OperationRecord<OpType extends Operation<?, ?>> {
 	 * Clear this record.
 	 */
 	default void clear() {
-		consume(op -> { // /dev/null
-		});
+		consume(op -> {}); // /dev/null
 	}
 
 	/**
