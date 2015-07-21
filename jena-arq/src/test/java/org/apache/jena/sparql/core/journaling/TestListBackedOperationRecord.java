@@ -45,8 +45,7 @@ public class TestListBackedOperationRecord extends Assert {
 	@Test
 	public void testConsume() {
 		ListBackedOperationRecord<MockOp> testRecord = new ListBackedOperationRecord<>(ops);
-		testRecord.consume(op -> {
-		}); // /dev/null
+		testRecord.consume(op -> {}); // /dev/null
 		assertTrue(ops.isEmpty());
 		// now let's try with a problematic consumer
 		ops = new ArrayList<>(asList(mockOp1, mockOp2, mockOp3));

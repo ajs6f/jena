@@ -18,6 +18,7 @@
 
 package org.apache.jena.sparql.core;
 
+import org.apache.jena.sparql.core.journaling.TestJournaling;
 import org.junit.runner.RunWith ;
 import org.junit.runners.Suite ;
 
@@ -33,6 +34,7 @@ import org.junit.runners.Suite ;
     , TestDatasetGraphViewGraphs.class
     , TestDatasetMonitor.class
     , TestDatasetGraphWithLock.class
+    , TestJournaling.class
 })
 
 public class TS_Core

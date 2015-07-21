@@ -37,7 +37,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	/**
 	 * A record of operations for use in rewinding transactions.
 	 */
-	private ReversibleOperationRecord<QuadOperation> record = new ListBackedOperationRecord<>(new ArrayList<>());
+	private ReversibleOperationRecord<QuadOperation<?,?>> record = new ListBackedOperationRecord<>(new ArrayList<>());
 
 	/**
 	 * Indicates whether an transaction abort is in progress.
@@ -67,7 +67,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	 * @param dsg the DatasetGraph that will back this one
 	 * @param record the operation record to use with this DatasetGraph
 	 */
-	public DatasetGraphWithRecord(final DatasetGraph dsg, final ReversibleOperationRecord<QuadOperation> record) {
+	public DatasetGraphWithRecord(final DatasetGraph dsg, final ReversibleOperationRecord<QuadOperation<?,?>> record) {
 		super(dsg);
 		this.record = record;
 	}
