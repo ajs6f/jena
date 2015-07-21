@@ -1,10 +1,10 @@
 package org.apache.jena.sparql.core.journaling;
 
 import static java.util.Arrays.asList;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import org.apache.jena.sparql.core.journaling.Operation.InvertibleOperation;
 import org.junit.Assert;
@@ -44,9 +44,22 @@ public class TestListBackedOperationRecord extends Assert {
 
 	@Test
 	public void testConsume() {
-		final ListBackedOperationRecord<MockOp> testRecord = new ListBackedOperationRecord<>(ops);
-		testRecord.consume(Objects::toString); // /dev/null
+		ListBackedOperationRecord<MockOp> testRecord = new ListBackedOperationRecord<>(ops);
+		testRecord.consume(op -> {}); // /dev/null
 		assertTrue(ops.isEmpty());
+		// now let's try with a problematic consumer
+		ops = new ArrayList<>(asList(mockOp1, mockOp2, mockOp3));
+		when(mockOp3.inverse()).thenThrow(new RuntimeException("Expected."));
+		testRecord = new ListBackedOperationRecord<>(ops);
+		try {
+			testRecord.consume(MockOp::inverse);
+		} catch (final Exception e) { // should not have been able to consume the last op, which threw an exception
+			assertEquals("Expected.", e.getMessage());
+			// should be one op left
+			assertEquals(1, ops.size());
+			// and it should be mockOp3
+			assertEquals(mockOp3, ops.get(0));
+		}
 	}
 
 	@Test
