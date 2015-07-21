@@ -40,7 +40,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	private ReversibleOperationRecord<QuadOperation<?, ?>> record = new ListBackedOperationRecord<>(new ArrayList<>());
 
 	/**
-	 * Indicates whether an transaction abort is in progress.
+	 * Indicates whether we should be recording operations. True iff we are in a transaction and not aborting.
 	 */
 	private final ThreadLocal<Boolean> recording = withInitial(() -> false);
 
