@@ -39,7 +39,7 @@ public interface OperationRecord<OpType extends Operation<?, ?>> {
 	/**
 	 * A reversible {@link OperationRecord} containing invertible operations.
 	 */
-	public static interface ReversibleOperationRecord<OpType extends InvertibleOperation<?, ?>>
+	public static interface ReversibleOperationRecord<OpType extends InvertibleOperation<?, ?, ?, ?>>
 			extends OperationRecord<OpType> {
 
 		/**
