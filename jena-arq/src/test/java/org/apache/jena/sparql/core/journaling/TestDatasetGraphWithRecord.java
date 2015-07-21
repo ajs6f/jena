@@ -5,6 +5,7 @@ import static org.apache.jena.graph.NodeFactory.createURI;
 import static org.apache.jena.query.ReadWrite.READ;
 import static org.apache.jena.query.ReadWrite.WRITE;
 import static org.apache.jena.sparql.core.DatasetGraphFactory.createMem;
+import static org.apache.jena.sparql.sse.SSE.parseTriple;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -27,14 +28,9 @@ import org.junit.Test;
 
 public class TestDatasetGraphWithRecord extends AbstractDatasetGraphTests {
 	private static final Node graphName = createURI("some-graph");
-	private static final Node subject1 = createURI("subject1");
-	private static final Node subject2 = createURI("subject2");
-	private static final Node object1 = createURI("object1");
-	private static final Node object2 = createURI("object2");
-	private static final Node predicate = createURI("predicate");
-	private static final Quad q1 = new Quad(graphName, subject1, predicate, object1);
-	private static final Quad q2 = new Quad(graphName, subject1, predicate, object2);
-	private static final Quad q3 = new Quad(graphName, subject2, predicate, object2);
+	private static final Quad q1 = new Quad(graphName, parseTriple("(<subject1> <predicate> <object1>)"));
+	private static final Quad q2 = new Quad(graphName, parseTriple("(<subject1> <predicate> <object2>)"));
+	private static final Quad q3 = new Quad(graphName, parseTriple("(<subject2> <predicate> <object2>)"));
 
 	@Override
 	protected DatasetGraph emptyDataset() {
@@ -108,7 +104,7 @@ public class TestDatasetGraphWithRecord extends AbstractDatasetGraphTests {
 	 */
 	@Test
 	public void testRecordShouldBeCompact() {
-		final List<QuadOperation> record = new ArrayList<>();
+		final List<QuadOperation<?, ?>> record = new ArrayList<>();
 		final Dataset dataset = DatasetFactory.create(new DatasetGraphWithRecord(new DatasetGraphMap(new GraphMem()),
 				new ListBackedOperationRecord<>(record)));
 		final DatasetGraph dsg = dataset.asDatasetGraph();
@@ -196,7 +192,7 @@ public class TestDatasetGraphWithRecord extends AbstractDatasetGraphTests {
 
 	@Test
 	public void testClear() {
-		final List<QuadOperation> record = new ArrayList<>();
+		final List<QuadOperation<?, ?>> record = new ArrayList<>();
 		final Dataset dataset = DatasetFactory.create(new DatasetGraphWithRecord(new DatasetGraphMap(new GraphMem()),
 				new ListBackedOperationRecord<>(record)));
 		final DatasetGraph dsg = dataset.asDatasetGraph();
