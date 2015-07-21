@@ -1,5 +1,6 @@
 package org.apache.jena.sparql.core.journaling;
 
+import static java.lang.ThreadLocal.withInitial;
 import static org.apache.jena.ext.com.google.common.collect.Lists.newArrayList;
 import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.query.ReadWrite.WRITE;
@@ -36,13 +37,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	/**
 	 * Indicates whether an transaction abort is in progress.
 	 */
-	private final ThreadLocal<Boolean> aborting = new ThreadLocal<Boolean>() {
-
-		@Override
-		protected Boolean initialValue() {
-			return false;
-		}
-	};
+	private final ThreadLocal<Boolean> aborting = withInitial(() -> false);
 
 	private boolean isAborting() {
 		return aborting.get();
@@ -56,10 +51,17 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 		aborting.set(false);
 	}
 
+	/**
+	 * @param dsg the DatasetGraph that will back this one
+	 */
 	public DatasetGraphWithRecord(final DatasetGraph dsg) {
 		super(dsg);
 	}
 
+	/**
+	 * @param dsg the DatasetGraph that will back this one
+	 * @param record the operation record to use with this DatasetGraph
+	 */
 	public DatasetGraphWithRecord(final DatasetGraph dsg, final ReversibleOperationRecord<QuadOperation> record) {
 		super(dsg);
 		this.record = record;
@@ -195,9 +197,12 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	protected void _end() {
 		if (isInTransaction() && isTransactionType(WRITE)) {
 			try {
+				// pause recording operations from this thread
 				startAborting();
+				// unwind the record
 				record.reverse().consume(op -> op.inverse().actOn(this));
 			} finally {
+				// begin recording again
 				stopAborting();
 			}
 		}
