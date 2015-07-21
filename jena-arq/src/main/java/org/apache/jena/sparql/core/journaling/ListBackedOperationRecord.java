@@ -11,8 +11,16 @@ import org.apache.jena.sparql.core.journaling.OperationRecord.ReversibleOperatio
 public class ListBackedOperationRecord<OpType extends InvertibleOperation<?, ?>>
 		implements ReversibleOperationRecord<OpType> {
 
+	/**
+	 * A {@link List} into which we will record operations. The iterator of this list _must_ implement {@link Iterator#remove()}
+	 * for {@link #consume(Consumer)} to operate correctly!
+	 */
 	private final List<OpType> operations;
 
+	/**
+	 * @param ops a list into which we will record operations. The iterator of this list _must_ implement
+	 *        {@link Iterator#remove()} for {@link #consume(Consumer)} to operate correctly!
+	 */
 	public ListBackedOperationRecord(final List<OpType> ops) {
 		operations = ops;
 	}

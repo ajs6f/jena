@@ -12,6 +12,7 @@ import java.util.function.Consumer;
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
 import org.apache.jena.mem.GraphMem;
+import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.JenaTransactionException;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.core.DatasetGraphWithLock;
@@ -37,18 +38,18 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	/**
 	 * Indicates whether an transaction abort is in progress.
 	 */
-	private final ThreadLocal<Boolean> aborting = withInitial(() -> false);
+	private final ThreadLocal<Boolean> recording = withInitial(() -> false);
 
-	private boolean isAborting() {
-		return aborting.get();
+	private boolean isRecording() {
+		return recording.get();
 	}
 
-	private void startAborting() {
-		aborting.set(true);
+	private void startRecording() {
+		recording.set(true);
 	}
 
-	private void stopAborting() {
-		aborting.set(false);
+	private void stopRecording() {
+		recording.set(false);
 	}
 
 	/**
@@ -113,7 +114,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	private final Consumer<Quad> _add = quad -> {
 		if (!contains(quad)) {
 			super.add(quad);
-			if (!isAborting()) record.add(new QuadAddition(quad));
+			if (isRecording()) record.add(new QuadAddition(quad));
 		}
 	};
 
@@ -123,37 +124,40 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	private final Consumer<Quad> _delete = quad -> {
 		if (contains(quad)) {
 			super.delete(quad);
-			if (!isAborting()) record.add(new QuadDeletion(quad));
+			if (isRecording()) record.add(new QuadDeletion(quad));
 		}
 	};
 
 	/**
-	 * Wraps a mutation to the state of this dataset with guards.
+	 * Guards a mutation to the state of this dataset.
 	 *
 	 * @param quad the quad with which to mutate this dataset
 	 * @param mutator the kind of change to make
 	 */
 	private void operate(final Quad quad, final Consumer<Quad> mutator) {
-		if (isInTransaction())
-			if (isTransactionType(WRITE))
-				mutator.accept(quad);
-			else throw new JenaTransactionException("Tried to write in a READ transaction!");
-		else throw new JenaTransactionException("Tried to write outside of a transaction!");
+		if (allowedToWrite())
+			mutator.accept(quad);
+		else throw new JenaTransactionException("Tried to write in a non-WRITE transaction!");
 	}
 
 	/**
-	 * Wraps a mutation to the state of this dataset with guards.
+	 * Guards a mutation to the state of this dataset.
 	 *
 	 * @param graphName the name of the graph on which to operate
 	 * @param graph the graph on which to operate
 	 * @param mutator the kind of change to make
 	 */
 	private void operateOnGraph(final Node graphName, final Graph graph, final BiConsumer<Node, Graph> mutator) {
-		if (isInTransaction())
-			if (isTransactionType(WRITE))
-				mutator.accept(graphName, graph);
-			else throw new JenaTransactionException("Tried to write in a READ transaction!");
-		else throw new JenaTransactionException("Tried to write outside of a transaction!");
+		if (allowedToWrite())
+			mutator.accept(graphName, graph);
+		else throw new JenaTransactionException("Tried to write in a non_WRITE transaction!");
+	}
+
+	/**
+	 * @return true iff we are outside a transaction or inside a WRITE transaction
+	 */
+	private boolean allowedToWrite() {
+		return !isInTransaction() || isInTransaction() && isTransactionType(WRITE);
 	}
 
 	@Override
@@ -183,6 +187,12 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	}
 
 	@Override
+	protected void _begin(final ReadWrite readWrite) {
+		super._begin(readWrite);
+		startRecording();
+	}
+
+	@Override
 	protected void _commit() {
 		record.clear();
 		super._commit();
@@ -198,12 +208,12 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 		if (isInTransaction() && isTransactionType(WRITE)) {
 			try {
 				// pause recording operations from this thread
-				startAborting();
+				stopRecording();
 				// unwind the record
 				record.reverse().consume(op -> op.inverse().actOn(this));
 			} finally {
 				// begin recording again
-				stopAborting();
+				startRecording();
 			}
 		}
 		record.clear();
