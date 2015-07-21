@@ -17,6 +17,7 @@ import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.core.DatasetGraphMap;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Transactional;
+import org.apache.jena.sparql.core.journaling.QuadOperation.QuadDeletion;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -212,7 +213,9 @@ public class TestDatasetGraphWithRecord extends Assert {
 
 	@Test
 	public void testClear() {
-		final DatasetGraph realDsg = new DatasetGraphWithRecord(new DatasetGraphMap(new GraphMem()));
+		final List<QuadOperation> record = new ArrayList<>();
+		final DatasetGraph realDsg = new DatasetGraphWithRecord(new DatasetGraphMap(new GraphMem()),
+				new ListBackedOperationRecord<>(record));
 		final Dataset dataset = DatasetFactory.create(realDsg);
 		final DatasetGraph dsg = dataset.asDatasetGraph();
 
@@ -228,6 +231,9 @@ public class TestDatasetGraphWithRecord extends Assert {
 		dataset.begin(WRITE);
 		try {
 			dsg.clear();
+			// we should see a single deletion resulting from the clear
+			assertEquals(1, record.size());
+			assertEquals(new QuadDeletion(q1), record.get(0));
 			dataset.commit();
 		} finally {
 			dataset.end();
