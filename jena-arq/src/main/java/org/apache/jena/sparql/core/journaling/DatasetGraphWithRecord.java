@@ -29,15 +29,15 @@ import org.apache.jena.sparql.core.journaling.QuadOperation.QuadDeletion;
  * transactional semantics of a given {@link Graph} are discarded on add and replaced with those of this class, so that
  * transactional semantics are uniform and therefore useful.
  *
- * This class inherits locking semantics from the class which is used as a backing store for it. To use MRSW semantics,
- * choose a backing store that subclasses {@link DatasetGraphBase}.
+ * This class inherits locking semantics from the class which is used as a backing store for it. To enforce MRSW
+ * semantics, we require a backing store that subclasses {@link DatasetGraphBase}.
  */
 public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 
 	/**
 	 * A record of operations for use in rewinding transactions.
 	 */
-	private ReversibleOperationRecord<QuadOperation<?,?>> record = new ListBackedOperationRecord<>(new ArrayList<>());
+	private ReversibleOperationRecord<QuadOperation<?, ?>> record = new ListBackedOperationRecord<>(new ArrayList<>());
 
 	/**
 	 * Indicates whether an transaction abort is in progress.
@@ -59,7 +59,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	/**
 	 * @param dsg the DatasetGraph that will back this one
 	 */
-	public DatasetGraphWithRecord(final DatasetGraph dsg) {
+	public DatasetGraphWithRecord(final DatasetGraphBase dsg) {
 		super(dsg);
 	}
 
@@ -67,7 +67,8 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	 * @param dsg the DatasetGraph that will back this one
 	 * @param record the operation record to use with this DatasetGraph
 	 */
-	public DatasetGraphWithRecord(final DatasetGraph dsg, final ReversibleOperationRecord<QuadOperation<?,?>> record) {
+	public DatasetGraphWithRecord(final DatasetGraphBase dsg,
+			final ReversibleOperationRecord<QuadOperation<?, ?>> record) {
 		super(dsg);
 		this.record = record;
 	}

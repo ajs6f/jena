@@ -20,6 +20,7 @@ import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.sparql.JenaTransactionException;
 import org.apache.jena.sparql.core.AbstractDatasetGraphTests;
 import org.apache.jena.sparql.core.DatasetGraph;
+import org.apache.jena.sparql.core.DatasetGraphBase;
 import org.apache.jena.sparql.core.DatasetGraphMap;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Transactional;
@@ -34,7 +35,7 @@ public class TestDatasetGraphWithRecord extends AbstractDatasetGraphTests {
 
 	@Override
 	protected DatasetGraph emptyDataset() {
-		return new DatasetGraphWithRecord(createMem());
+		return new DatasetGraphWithRecord((DatasetGraphBase) createMem());
 	}
 
 	/**
