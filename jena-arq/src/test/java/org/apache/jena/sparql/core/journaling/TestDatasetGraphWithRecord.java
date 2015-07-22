@@ -160,7 +160,8 @@ public class TestDatasetGraphWithRecord {
 		}
 
 		/**
-		 * {@link DatasetGraphWithRecord} can only be mutated within a WRITE transaction.
+		 * {@link DatasetGraphWithRecord} can only be mutated within a WRITE transaction, not any other kind of
+		 * transaction.
 		 */
 		@Test(expected = JenaTransactionException.class)
 		public void testDatasetGraphWithRecordIsWriteTransactionalOnlyForGraphWrites() {
@@ -176,7 +177,8 @@ public class TestDatasetGraphWithRecord {
 		}
 
 		/**
-		 * {@link DatasetGraphWithRecord} can only be mutated within a WRITE transaction.
+		 * {@link DatasetGraphWithRecord} can only be mutated within a WRITE transaction, not any other kind of
+		 * transaction.
 		 */
 		@Test(expected = JenaTransactionException.class)
 		public void testDatasetGraphWithRecordIsWriteTransactionalOnlyForTupleWrites() {
@@ -191,9 +193,14 @@ public class TestDatasetGraphWithRecord {
 			}
 		}
 
+		/**
+		 * {@link DatasetGraphWithRecord#removeGraph(Node)} should leave a record of quads removed.
+		 */
 		@Test
 		public void testRemoveGraph() {
-			final Dataset dataset = DatasetFactory.create(emptyDataset());
+			final List<QuadOperation<?, ?>> record = new ArrayList<>();
+			final Dataset dataset = DatasetFactory.create(new DatasetGraphWithRecord(
+					new DatasetGraphMap(new GraphMem()), new ListBackedOperationRecord<>(record)));
 			final DatasetGraph dsg = dataset.asDatasetGraph();
 
 			dataset.begin(WRITE);
@@ -209,6 +216,9 @@ public class TestDatasetGraphWithRecord {
 			dataset.begin(WRITE);
 			try {
 				dsg.removeGraph(graphName);
+				// we should see a single deletion resulting from the removeGraph
+				assertEquals(1, record.size());
+				assertEquals(new QuadDeletion(q1), record.get(0));
 				dataset.commit();
 			} finally {
 				dataset.end();
@@ -218,6 +228,9 @@ public class TestDatasetGraphWithRecord {
 			assertTrue(dsg.isEmpty());
 		}
 
+		/**
+		 * {@link DatasetGraphWithRecord#clear()} should leave a record of quads removed.
+		 */
 		@Test
 		public void testClear() {
 			final List<QuadOperation<?, ?>> record = new ArrayList<>();

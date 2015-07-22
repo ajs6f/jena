@@ -39,15 +39,20 @@ import org.mockito.runners.MockitoJUnitRunner;
 public class TestQuadOperation extends Assert {
 
 	private static final Node graphName = createURI("info:graph");
-	private static final Node bNodeSubject = createBlankNode();
-	private static final Node bNodeObject = createBlankNode();
-	private static final Node predicate = createURI("info:test");
-	private static final Quad q = new Quad(graphName, bNodeSubject, predicate, bNodeObject);
+	private static final Quad q = new Quad(graphName, createBlankNode(), createURI("info:test"), createBlankNode());
 	private static final QuadAddition quadAddition = new QuadAddition(q);
 	private static final QuadDeletion quadDeletion = new QuadDeletion(q);
 
 	@Mock
 	private DatasetGraph mockDsg;
+
+	@Test
+	public void testEquals() {
+		assertEquals(new QuadAddition(q), new QuadAddition(q));
+		assertEquals(new QuadDeletion(q), new QuadDeletion(q));
+		assertNotEquals(new QuadAddition(q),new QuadDeletion(q));
+		assertNotEquals(new QuadDeletion(q), new QuadAddition(q));
+	}
 
 	@Test
 	public void testActOn() {
