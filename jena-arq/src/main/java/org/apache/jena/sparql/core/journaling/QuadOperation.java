@@ -18,6 +18,8 @@
 
 package org.apache.jena.sparql.core.journaling;
 
+import static java.util.Objects.hash;
+
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.journaling.Operation.InvertibleOperation;
@@ -40,7 +42,7 @@ public abstract class QuadOperation<SelfType extends QuadOperation<SelfType, Inv
 		}
 
 		@Override
-		public QuadAddition data() {
+		public Quad data() {
 			return this;
 		}
 
@@ -58,6 +60,17 @@ public abstract class QuadOperation<SelfType extends QuadOperation<SelfType, Inv
 		public String toString() {
 			return "ADD " + super.toString();
 		}
+
+		@Override
+		public int hashCode() {
+			return hash(data());
+		}
+
+		@Override
+		public boolean equals(final Object other) {
+			if (other instanceof QuadAddition) return super.equals(((QuadAddition) other).data());
+			return false;
+		}
 	}
 
 	public static class QuadDeletion extends QuadOperation<QuadDeletion, QuadAddition> {
@@ -67,7 +80,7 @@ public abstract class QuadOperation<SelfType extends QuadOperation<SelfType, Inv
 		}
 
 		@Override
-		public QuadDeletion data() {
+		public Quad data() {
 			return this;
 		}
 
@@ -84,6 +97,17 @@ public abstract class QuadOperation<SelfType extends QuadOperation<SelfType, Inv
 		@Override
 		public String toString() {
 			return "DELETE " + super.toString();
+		}
+
+		@Override
+		public int hashCode() {
+			return hash(data());
+		}
+
+		@Override
+		public boolean equals(final Object other) {
+			if (other instanceof QuadDeletion) return super.equals(((QuadDeletion) other).data());
+			return false;
 		}
 	}
 }
