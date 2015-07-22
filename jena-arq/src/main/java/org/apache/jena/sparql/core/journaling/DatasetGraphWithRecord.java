@@ -1,3 +1,21 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.jena.sparql.core.journaling;
 
 import static java.lang.ThreadLocal.withInitial;
@@ -13,12 +31,12 @@ import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
 import org.apache.jena.mem.GraphMem;
 import org.apache.jena.query.ReadWrite;
+import org.apache.jena.shared.Lock;
+import org.apache.jena.shared.LockMRSW;
 import org.apache.jena.sparql.JenaTransactionException;
 import org.apache.jena.sparql.core.DatasetGraph;
-import org.apache.jena.sparql.core.DatasetGraphBase;
 import org.apache.jena.sparql.core.DatasetGraphWithLock;
 import org.apache.jena.sparql.core.Quad;
-import org.apache.jena.sparql.core.journaling.OperationRecord.ReversibleOperationRecord;
 import org.apache.jena.sparql.core.journaling.QuadOperation.QuadAddition;
 import org.apache.jena.sparql.core.journaling.QuadOperation.QuadDeletion;
 
@@ -29,10 +47,12 @@ import org.apache.jena.sparql.core.journaling.QuadOperation.QuadDeletion;
  * transactional semantics of a given {@link Graph} are discarded on add and replaced with those of this class, so that
  * transactional semantics are uniform and therefore useful.
  *
- * This class inherits locking semantics from the class which is used as a backing store for it. To enforce MRSW
- * semantics, we require a backing store that subclasses {@link DatasetGraphBase}.
+ * This class overrides the locking semantics of the class which is used as a backing store for it. It uses a
+ * {@link LockMRSW} to enforce MRSW semantics.
  */
 public class DatasetGraphWithRecord extends DatasetGraphWithLock {
+
+	private final Lock lock = new LockMRSW();
 
 	/**
 	 * A record of operations for use in rewinding transactions.
@@ -59,7 +79,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	/**
 	 * @param dsg the DatasetGraph that will back this one
 	 */
-	public DatasetGraphWithRecord(final DatasetGraphBase dsg) {
+	public DatasetGraphWithRecord(final DatasetGraph dsg) {
 		super(dsg);
 	}
 
@@ -67,8 +87,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	 * @param dsg the DatasetGraph that will back this one
 	 * @param record the operation record to use with this DatasetGraph
 	 */
-	public DatasetGraphWithRecord(final DatasetGraphBase dsg,
-			final ReversibleOperationRecord<QuadOperation<?, ?>> record) {
+	public DatasetGraphWithRecord(final DatasetGraph dsg, final ReversibleOperationRecord<QuadOperation<?, ?>> record) {
 		super(dsg);
 		this.record = record;
 	}
@@ -119,7 +138,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	private final Consumer<Quad> _add = quad -> {
 		if (!contains(quad)) {
 			super.add(quad);
-			if (isRecording()) record.add(new QuadAddition(quad));
+			if (isRecording()) record.accept(new QuadAddition(quad));
 		}
 	};
 
@@ -129,7 +148,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	private final Consumer<Quad> _delete = quad -> {
 		if (contains(quad)) {
 			super.delete(quad);
-			if (isRecording()) record.add(new QuadDeletion(quad));
+			if (isRecording()) record.accept(new QuadDeletion(quad));
 		}
 	};
 
@@ -230,4 +249,10 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 		record.clear();
 		super.close();
 	}
+
+	@Override
+	public Lock getLock() {
+		return lock;
+	}
+
 }
