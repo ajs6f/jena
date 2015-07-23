@@ -23,6 +23,7 @@ import static org.apache.jena.graph.NodeFactory.createURI;
 import static org.apache.jena.query.ReadWrite.READ;
 import static org.apache.jena.query.ReadWrite.WRITE;
 import static org.apache.jena.sparql.core.DatasetGraphFactory.createMem;
+import static org.apache.jena.sparql.graph.GraphFactory.createGraphMem;
 import static org.apache.jena.sparql.sse.SSE.parseTriple;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -31,8 +32,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
-import org.apache.jena.mem.GraphMem;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
 import org.apache.jena.sparql.JenaTransactionException;
@@ -71,7 +72,7 @@ public class TestDatasetGraphWithRecord {
 		 */
 		@Test
 		public void testAddGraphCopiesTuples() {
-			final GraphMem graph = new GraphMem();
+			final Graph graph = createGraphMem();
 			graph.add(q1.asTriple());
 			graph.add(q2.asTriple());
 
@@ -105,7 +106,7 @@ public class TestDatasetGraphWithRecord {
 
 			dataset.begin(WRITE);
 			try {
-				dsg.addGraph(graphName, new GraphMem());
+				dsg.addGraph(graphName, createGraphMem());
 				dsg.add(q1);
 				dataset.commit();
 			} finally {
@@ -134,12 +135,12 @@ public class TestDatasetGraphWithRecord {
 		public void testRecordShouldBeCompact() {
 			final List<QuadOperation<?, ?>> record = new ArrayList<>();
 			final Dataset dataset = DatasetFactory.create(new DatasetGraphWithRecord(
-					new DatasetGraphMap(new GraphMem()), new ListBackedOperationRecord<>(record)));
+					new DatasetGraphMap(createGraphMem()), new ListBackedOperationRecord<>(record)));
 			final DatasetGraph dsg = dataset.asDatasetGraph();
 
 			dataset.begin(WRITE);
 			try {
-				dsg.addGraph(graphName, new GraphMem());
+				dsg.addGraph(graphName, createGraphMem());
 				// add the same quad twice
 				dsg.add(q1);
 				dsg.add(q1);
@@ -170,7 +171,7 @@ public class TestDatasetGraphWithRecord {
 
 			dataset.begin(READ);
 			try {
-				dsg.addGraph(graphName, new GraphMem());
+				dsg.addGraph(graphName, createGraphMem());
 			} finally {
 				dataset.end();
 			}
@@ -200,12 +201,12 @@ public class TestDatasetGraphWithRecord {
 		public void testRemoveGraph() {
 			final List<QuadOperation<?, ?>> record = new ArrayList<>();
 			final Dataset dataset = DatasetFactory.create(new DatasetGraphWithRecord(
-					new DatasetGraphMap(new GraphMem()), new ListBackedOperationRecord<>(record)));
+					new DatasetGraphMap(createGraphMem()), new ListBackedOperationRecord<>(record)));
 			final DatasetGraph dsg = dataset.asDatasetGraph();
 
 			dataset.begin(WRITE);
 			try {
-				dsg.addGraph(graphName, new GraphMem());
+				dsg.addGraph(graphName, createGraphMem());
 				dsg.add(q1);
 				dataset.commit();
 			} finally {
@@ -235,12 +236,12 @@ public class TestDatasetGraphWithRecord {
 		public void testClear() {
 			final List<QuadOperation<?, ?>> record = new ArrayList<>();
 			final Dataset dataset = DatasetFactory.create(new DatasetGraphWithRecord(
-					new DatasetGraphMap(new GraphMem()), new ListBackedOperationRecord<>(record)));
+					new DatasetGraphMap(createGraphMem()), new ListBackedOperationRecord<>(record)));
 			final DatasetGraph dsg = dataset.asDatasetGraph();
 
 			dataset.begin(WRITE);
 			try {
-				dsg.addGraph(graphName, new GraphMem());
+				dsg.addGraph(graphName, createGraphMem());
 				dsg.add(q1);
 				dataset.commit();
 			} finally {
