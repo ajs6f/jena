@@ -22,6 +22,7 @@ import static java.lang.ThreadLocal.withInitial;
 import static org.apache.jena.ext.com.google.common.collect.Lists.newArrayList;
 import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.query.ReadWrite.WRITE;
+import static org.apache.jena.sparql.graph.GraphFactory.createGraphMem;
 
 import java.util.ArrayList;
 import java.util.function.BiConsumer;
@@ -29,7 +30,6 @@ import java.util.function.Consumer;
 
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
-import org.apache.jena.mem.GraphMem;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.shared.Lock;
 import org.apache.jena.shared.LockMRSW;
@@ -117,7 +117,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	 */
 	private final BiConsumer<Node, Graph> _addGraph = (graphName, graph) -> {
 		// create an empty graph in the backing store
-		super.addGraph(graphName, new GraphMem());
+		super.addGraph(graphName, createGraphMem());
 		// copy all triples into it
 		graph.find(ANY, ANY, ANY).forEachRemaining(t -> add(new Quad(graphName, t)));
 	};
