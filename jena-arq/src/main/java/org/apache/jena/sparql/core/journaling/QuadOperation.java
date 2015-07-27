@@ -29,10 +29,12 @@ import org.apache.jena.sparql.core.journaling.Operation.InvertibleOperation;
  *
  */
 public abstract class QuadOperation<SelfType extends QuadOperation<SelfType, InverseType>, InverseType extends QuadOperation<InverseType, SelfType>>
-		extends Quad implements InvertibleOperation<Quad, DatasetGraph, SelfType, InverseType> {
+		implements InvertibleOperation<Quad, DatasetGraph, SelfType, InverseType> {
+
+	protected final Quad quad;
 
 	public QuadOperation(final Quad q) {
-		super(q.getGraph(), q.asTriple());
+		this.quad = q;
 	}
 
 	public static class QuadAddition extends QuadOperation<QuadAddition, QuadDeletion> {
@@ -43,17 +45,17 @@ public abstract class QuadOperation<SelfType extends QuadOperation<SelfType, Inv
 
 		@Override
 		public Quad data() {
-			return this;
+			return quad;
 		}
 
 		@Override
 		public QuadDeletion inverse() {
-			return new QuadDeletion(this);
+			return new QuadDeletion(data());
 		}
 
 		@Override
 		public void actOn(final DatasetGraph dsg) {
-			dsg.add(this);
+			dsg.add(data());
 		}
 
 		@Override
@@ -68,7 +70,7 @@ public abstract class QuadOperation<SelfType extends QuadOperation<SelfType, Inv
 
 		@Override
 		public boolean equals(final Object other) {
-			if (other instanceof QuadAddition) return super.equals(((QuadAddition) other).data());
+			if (other instanceof QuadAddition) return data().equals(((QuadAddition) other).data());
 			return false;
 		}
 	}
@@ -81,17 +83,17 @@ public abstract class QuadOperation<SelfType extends QuadOperation<SelfType, Inv
 
 		@Override
 		public Quad data() {
-			return this;
+			return quad;
 		}
 
 		@Override
 		public QuadAddition inverse() {
-			return new QuadAddition(this);
+			return new QuadAddition(data());
 		}
 
 		@Override
 		public void actOn(final DatasetGraph dsg) {
-			dsg.delete(this);
+			dsg.delete(data());
 		}
 
 		@Override
@@ -106,7 +108,7 @@ public abstract class QuadOperation<SelfType extends QuadOperation<SelfType, Inv
 
 		@Override
 		public boolean equals(final Object other) {
-			if (other instanceof QuadDeletion) return super.equals(((QuadDeletion) other).data());
+			if (other instanceof QuadDeletion) return data().equals(((QuadDeletion) other).data());
 			return false;
 		}
 	}

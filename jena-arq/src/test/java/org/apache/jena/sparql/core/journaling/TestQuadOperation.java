@@ -50,8 +50,10 @@ public class TestQuadOperation extends Assert {
 	public void testEquals() {
 		assertEquals(new QuadAddition(q), new QuadAddition(q));
 		assertEquals(new QuadDeletion(q), new QuadDeletion(q));
-		assertNotEquals(new QuadAddition(q),new QuadDeletion(q));
+		assertNotEquals(new QuadAddition(q), new QuadDeletion(q));
 		assertNotEquals(new QuadDeletion(q), new QuadAddition(q));
+		assertNotEquals(new QuadAddition(q), q);
+		assertNotEquals(new QuadDeletion(q), q);
 	}
 
 	@Test
