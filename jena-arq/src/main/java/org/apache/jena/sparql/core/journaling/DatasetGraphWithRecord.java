@@ -18,21 +18,20 @@
 
 package org.apache.jena.sparql.core.journaling;
 
-import static java.lang.ThreadLocal.withInitial;
 import static org.apache.jena.ext.com.google.common.collect.Lists.newArrayList;
 import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.query.ReadWrite.WRITE;
 import static org.apache.jena.sparql.graph.GraphFactory.createGraphMem;
 
 import java.util.ArrayList;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
 import org.apache.jena.query.ReadWrite;
-import org.apache.jena.shared.Lock;
-import org.apache.jena.shared.LockMRSW;
 import org.apache.jena.sparql.JenaTransactionException;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.core.DatasetGraphWithLock;
@@ -47,12 +46,12 @@ import org.apache.jena.sparql.core.journaling.QuadOperation.QuadDeletion;
  * transactional semantics of a given {@link Graph} are discarded on add and replaced with those of this class, so that
  * transactional semantics are uniform and therefore useful.
  *
- * This class overrides the locking semantics of the class which is used as a backing store for it. It uses a
- * {@link LockMRSW} to enforce MRSW semantics.
+ * This class supports MRSW locking. It can only be used with an underlying DatasetGraph implementation that provides
+ * MRSW or weaker locking. If the provided locking is weaker, then this class will only be able to support that level of
+ * locking. Because there is only one record of operations in use in this class at any time, using this class with an
+ * underlying implementation that supports stronger-than-MRSW semantics will have unpredictable results.
  */
 public class DatasetGraphWithRecord extends DatasetGraphWithLock {
-
-	private final Lock lock = new LockMRSW();
 
 	/**
 	 * A record of operations for use in rewinding transactions.
@@ -60,20 +59,27 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	private ReversibleOperationRecord<QuadOperation<?, ?>> record = new ListBackedOperationRecord<>(new ArrayList<>());
 
 	/**
-	 * Indicates whether we should be recording operations. True iff we are in a transaction and not aborting.
+	 * Mutex permitting only one writer at a time to mutate the operation record.
 	 */
-	private final ThreadLocal<Boolean> recording = withInitial(() -> false);
+	private final Lock recordLock = new ReentrantLock(true);
+	
+	/**
+	 * Indicates whether we should be recording operations. True iff we are in a WRITE-transaction and not aborting.
+	 */
+	private boolean recording = false;
 
 	private boolean isRecording() {
-		return recording.get();
+		return recording;
 	}
 
 	private void startRecording() {
-		recording.set(true);
+		// enforce the single-writer constraint
+		recordLock.lock();
+		recording = true;
 	}
 
 	private void stopRecording() {
-		recording.set(false);
+		recording = false;
 	}
 
 	/**
@@ -159,8 +165,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	 * @param mutator the kind of change to make
 	 */
 	private void operate(final Quad quad, final Consumer<Quad> mutator) {
-		if (allowedToWrite())
-			mutator.accept(quad);
+		if (allowedToWrite()) mutator.accept(quad);
 		else throw new JenaTransactionException("Tried to write in a non-WRITE transaction!");
 	}
 
@@ -172,8 +177,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	 * @param mutator the kind of change to make
 	 */
 	private void operateOnGraph(final Node graphName, final Graph graph, final BiConsumer<Node, Graph> mutator) {
-		if (allowedToWrite())
-			mutator.accept(graphName, graph);
+		if (allowedToWrite()) mutator.accept(graphName, graph);
 		else throw new JenaTransactionException("Tried to write in a non_WRITE transaction!");
 	}
 
@@ -213,12 +217,14 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	@Override
 	protected void _begin(final ReadWrite readWrite) {
 		super._begin(readWrite);
-		startRecording();
+		if (readWrite.equals(WRITE)) startRecording();	
 	}
 
 	@Override
 	protected void _commit() {
+		stopRecording();
 		record.clear();
+		recordLock.unlock();
 		super._commit();
 	}
 
@@ -229,30 +235,26 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 
 	@Override
 	protected void _end() {
-		if (isInTransaction() && isTransactionType(WRITE)) {
+		if (isRecording()) {
 			try {
-				// pause recording operations from this thread
+				// stop recording operations from this thread
 				stopRecording();
-				// unwind the record
+				// and unwind the record
 				record.reverse().consume(op -> op.inverse().actOn(this));
 			} finally {
-				// begin recording again
-				startRecording();
+				recordLock.unlock();
 			}
 		}
-		record.clear();
 		super._end();
 	}
 
 	@Override
 	public void close() {
-		record.clear();
+		if (isRecording()) {
+			stopRecording();
+			record.clear();
+			recordLock.unlock();
+		}
 		super.close();
 	}
-
-	@Override
-	public Lock getLock() {
-		return lock;
-	}
-
 }
