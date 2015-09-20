@@ -1,45 +1,27 @@
 package org.apache.jena.sparql.core.mem;
 
+import org.apache.jena.atlas.lib.PMap;
+import org.apache.jena.atlas.lib.PersistentMap;
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.mem.FourTupleMap.ThreeTupleMap;
-import org.pcollections.Empty;
-import org.pcollections.PMap;
 
-public interface FourTupleMap extends PMap<Node, ThreeTupleMap> {
+public interface FourTupleMap extends PersistentMap<Node, ThreeTupleMap, FourTupleMap> {
 
 	static FourTupleMap empty() {
-		return (FourTupleMap) Empty.<Node, ThreeTupleMap> map();
+		return (FourTupleMap) (PersistentMap) PMap.<Node, ThreeTupleMap> empty();
 	}
 
-	@Override
-	FourTupleMap plus(Node key, ThreeTupleMap value);
-
-	@Override
-	FourTupleMap minus(Object key);
-
-	public static interface ThreeTupleMap extends PMap<Node, TwoTupleMap> {
+	public static interface ThreeTupleMap extends PersistentMap<Node, TwoTupleMap, ThreeTupleMap> {
 
 		static ThreeTupleMap empty() {
-			return (ThreeTupleMap) Empty.<Node, TwoTupleMap> map();
+			return (ThreeTupleMap) (PersistentMap) PMap.<Node, TwoTupleMap> empty();
 		}
-
-		@Override
-		ThreeTupleMap plus(Node key, TwoTupleMap value);
-
-		@Override
-		ThreeTupleMap minus(Object key);
 	}
 
-	public static interface TwoTupleMap extends PMap<Node, PersistentSet<Node>> {
+	public static interface TwoTupleMap extends PersistentMap<Node, PersistentSet<Node>, TwoTupleMap> {
 
 		static TwoTupleMap empty() {
-			return (TwoTupleMap) Empty.<Node, PersistentSet<Node>> map();
+			return (TwoTupleMap) (PersistentMap) PMap.<Node, PersistentSet<Node>> empty();
 		}
-
-		@Override
-		TwoTupleMap plus(Node key, PersistentSet<Node> value);
-
-		@Override
-		TwoTupleMap minus(Object key);
 	}
 }

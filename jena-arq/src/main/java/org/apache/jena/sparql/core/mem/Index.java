@@ -2,7 +2,7 @@ package org.apache.jena.sparql.core.mem;
 
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.Collections.emptyIterator;
-import static org.apache.jena.ext.com.google.common.collect.Iterators.singletonIterator;
+import static org.apache.jena.atlas.iterator.Iter.singleton;
 
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
@@ -50,7 +50,7 @@ public abstract class Index {
 					if (fourth != null) {
 						// a specific object
 						if (!objects.contains(fourth)) return emptyIterator();
-						return singletonIterator(Quad.create(first, second, third, fourth));
+						return singleton(Quad.create(first, second, third, fourth));
 					}
 					// wildcard object
 					return objects.stream().map(ob -> Quad.create(first, second, third, ob)).iterator();
