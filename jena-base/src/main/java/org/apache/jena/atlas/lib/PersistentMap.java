@@ -19,13 +19,21 @@
 package org.apache.jena.atlas.lib;
 
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 /**
  * A <a href="https://en.wikipedia.org/wiki/Persistent_data_structure">persistent</a> map data structure.
  *
  */
 public interface PersistentMap<K, V, SelfType extends PersistentMap<K, V, SelfType>> {
+
+
+	public static <K, V> PersistentMap<K, V, PMap<K,V>> empty() {
+		return new PMap<>();
+	}
 
 	V get(K key);
 
@@ -37,6 +45,8 @@ public interface PersistentMap<K, V, SelfType extends PersistentMap<K, V, SelfTy
 
 	Set<Map.Entry<K, V>> entrySet();
 
-	Set<K> keySet();
+	default <R> Stream<R> descend(final Function<Entry<K, V>, Stream<R>> f) {
+		return entrySet().stream().flatMap(f);
+	}
 
 }

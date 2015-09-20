@@ -1,47 +1,42 @@
 package org.apache.jena.atlas.lib;
 
-import java.util.function.Consumer;
+import java.util.Map;
 import java.util.stream.Stream;
-
-import org.pcollections.Empty;
 
 public class PSet<E> implements PersistentSet<E> {
 
-	private final org.pcollections.PSet<E> wrappedSet;
+	private final PersistentMap<E, Object, ?> wrappedMap;
+
+	private static final Object token = new Object();
 
 	public static <E> PSet<E> empty() {
-		return new PSet<>(Empty.set());
+		return new PSet<>(PersistentMap.empty());
 	}
 
 	/**
 	 * @param wrappedSet
 	 */
-	public PSet(final org.pcollections.PSet<E> wrappedSet) {
-		this.wrappedSet = wrappedSet;
+	public PSet(final PersistentMap<E, Object, ?> wrapped) {
+		this.wrappedMap = wrapped;
 	}
 
 	@Override
 	public PersistentSet<E> plus(final E e) {
-		return new PSet<>(wrappedSet.plus(e));
+		return new PSet<>(wrappedMap.plus(e, token));
 	}
 
 	@Override
 	public PersistentSet<E> minus(final E e) {
-		return new PSet<>(wrappedSet.minus(e));
+		return new PSet<>(wrappedMap.minus(e));
 	}
 
 	@Override
 	public boolean contains(final E e) {
-		return wrappedSet.contains(e);
+		return wrappedMap.containsKey(e);
 	}
 
 	@Override
 	public Stream<E> stream() {
-		return wrappedSet.stream();
-	}
-
-	@Override
-	public void forEach(final Consumer<E> consumer) {
-		wrappedSet.forEach(consumer);
+		return wrappedMap.entrySet().stream().map(Map.Entry::getKey);
 	}
 }

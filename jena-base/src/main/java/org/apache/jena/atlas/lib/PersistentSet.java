@@ -1,6 +1,5 @@
 package org.apache.jena.atlas.lib;
 
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 public interface PersistentSet<E> {
@@ -16,7 +15,5 @@ public interface PersistentSet<E> {
 	boolean contains(E e);
 
 	Stream<E> stream();
-
-	void forEach(Consumer<E> consumer);
 
 }

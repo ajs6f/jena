@@ -9,15 +9,16 @@ public class PMap<K, V> implements PersistentMap<K, V, PMap<K,V>> {
 
 	private final org.pcollections.PMap<K, V> wrappedMap;
 
-	public static <K, V> PMap<K, V> empty() {
-		return new PMap<>(Empty.map());
-	}
-
 	/**
 	 * @param wrappedMap
 	 */
-	private PMap(final org.pcollections.PMap<K, V> wrappedMap) {
+	PMap(final org.pcollections.PMap<K, V> wrappedMap) {
 		this.wrappedMap = wrappedMap;
+	}
+
+
+	PMap() {
+		this(Empty.map());
 	}
 
 	@Override
@@ -43,10 +44,5 @@ public class PMap<K, V> implements PersistentMap<K, V, PMap<K,V>> {
 	@Override
 	public Set<Entry<K, V>> entrySet() {
 		return wrappedMap.entrySet();
-	}
-
-	@Override
-	public Set<K> keySet() {
-		return wrappedMap.keySet();
 	}
 }

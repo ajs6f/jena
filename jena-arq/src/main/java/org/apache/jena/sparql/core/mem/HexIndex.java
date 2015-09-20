@@ -2,9 +2,7 @@ package org.apache.jena.sparql.core.mem;
 
 import static java.util.stream.Collectors.toMap;
 import static org.apache.jena.sparql.core.Quad.defaultGraphIRI;
-import static org.apache.jena.sparql.core.mem.IndexForm.GSPO;
-import static org.apache.jena.sparql.core.mem.IndexForm.choose;
-import static org.apache.jena.sparql.core.mem.IndexForm.indexForms;
+import static org.apache.jena.sparql.core.mem.IndexForm.*;
 import static org.apache.jena.sparql.core.mem.QuadPattern.from;
 
 import java.util.EnumMap;
@@ -35,7 +33,7 @@ public class HexIndex extends Index {
 	}
 
 	Iterator<Node> listGraphNodes() {
-		return indexBlock.get(GSPO).local.get().keySet().iterator();
+		return indexBlock.get(GSPO).local.get().entrySet().stream().map(Map.Entry::getKey).iterator();
 	}
 
 	@Override

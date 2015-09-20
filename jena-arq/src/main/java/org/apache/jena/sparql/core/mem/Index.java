@@ -3,6 +3,7 @@ package org.apache.jena.sparql.core.mem;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.Collections.emptyIterator;
 import static org.apache.jena.atlas.iterator.Iter.singleton;
+import static org.apache.jena.sparql.core.Quad.create;
 
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
@@ -34,44 +35,46 @@ public abstract class Index {
 	public abstract Iterator<Quad> find(Node g, Node s, Node p, Node o, boolean searchDefaultGraph);
 
 	protected Iterator<Quad> _find(final Node first, final Node second, final Node third, final Node fourth) {
-		final FourTupleMap indexMap = local.get();
+		final FourTupleMap fourTuples = local.get();
 		if (first != null) {
-			// a specific graph
-			if (!indexMap.containsKey(first)) return emptyIterator();
-			final ThreeTupleMap graph = indexMap.get(first);
+			// a specific first slot value
+			if (!fourTuples.containsKey(first)) return emptyIterator();
+			final ThreeTupleMap threeTuples = fourTuples.get(first);
 			if (second != null) {
-				// a specific subject
-				if (!graph.containsKey(second)) return emptyIterator();
-				final TwoTupleMap predicates = graph.get(second);
+				// a specific second slot value
+				if (!threeTuples.containsKey(second)) return emptyIterator();
+				final TwoTupleMap twoTuples = threeTuples.get(second);
 				if (third != null) {
-					// a specific predicate
-					if (!predicates.containsKey(third)) return emptyIterator();
-					final PersistentSet<Node> objects = predicates.get(third);
+					// a specific third slot value
+					if (!twoTuples.containsKey(third)) return emptyIterator();
+					final PersistentSet<Node> oneTuples = twoTuples.get(third);
 					if (fourth != null) {
-						// a specific object
-						if (!objects.contains(fourth)) return emptyIterator();
-						return singleton(Quad.create(first, second, third, fourth));
+						// a specific fourth slot value
+						if (!oneTuples.contains(fourth)) return emptyIterator();
+						return singleton(create(first, second, third, fourth));
 					}
-					// wildcard object
-					return objects.stream().map(ob -> Quad.create(first, second, third, ob)).iterator();
+					// wildcard fourth slot
+					return oneTuples.stream().map(slot4 -> create(first, second, third, slot4)).iterator();
 				}
-				// wildcard predicate
-				return predicates.entrySet().stream()
-						.flatMap(e -> e.getValue().stream().map(ob -> Quad.create(first, second, e.getKey(), ob)))
+				// wildcard third slot
+				return twoTuples
+						.descend(e -> e.getValue().stream().map(slot4 -> create(first, second, e.getKey(), slot4)))
 						.iterator();
 			}
-			// wildcard subject
-			return graph.entrySet().stream()
-					.flatMap(e -> e.getValue().entrySet().stream().flatMap(
-							ep -> ep.getValue().stream().map(ob -> Quad.create(first, e.getKey(), ep.getKey(), ob))))
+			// wildcard second slot
+			return threeTuples
+					.descend(
+							slot2 -> slot2.getValue()
+									.descend(slot3 -> slot3.getValue().stream()
+											.map(slot4 -> create(first, slot2.getKey(), slot3.getKey(), slot4))))
 					.iterator();
 		}
-		return indexMap.entrySet().stream()
-				.flatMap(
-						eg -> eg.getValue().entrySet().stream()
-								.flatMap(e -> e.getValue().entrySet().stream()
-										.flatMap(ep -> ep.getValue().stream()
-												.map(ob -> Quad.create(eg.getKey(), e.getKey(), ep.getKey(), ob)))))
+		// wildcard everything
+		return fourTuples
+				.descend(slot1 -> slot1.getValue()
+						.descend(slot2 -> slot2.getValue()
+								.descend(slot3 -> slot3.getValue().stream()
+										.map(slot4 -> create(slot1.getKey(), slot2.getKey(), slot3.getKey(), slot4)))))
 				.iterator();
 
 	}
@@ -99,9 +102,9 @@ public abstract class Index {
 	public abstract void delete(Quad q);
 
 	public void delete(final Node first, final Node second, final Node third, final Node fourth) {
-		final FourTupleMap indexMap = local.get();
-		if (indexMap.containsKey(first)) {
-			ThreeTupleMap threeTuples = indexMap.get(first);
+		final FourTupleMap fourTuples = local.get();
+		if (fourTuples.containsKey(first)) {
+			ThreeTupleMap threeTuples = fourTuples.get(first);
 			if (threeTuples.containsKey(second)) {
 				TwoTupleMap twoTuples = threeTuples.get(third);
 				if (twoTuples.containsKey(third)) {
@@ -110,7 +113,7 @@ public abstract class Index {
 						oneTuples = oneTuples.minus(fourth);
 						twoTuples = twoTuples.minus(third).plus(third, oneTuples);
 						threeTuples = threeTuples.minus(second).plus(second, twoTuples);
-						local.set(indexMap.minus(first).plus(first, threeTuples));
+						local.set(fourTuples.minus(first).plus(first, threeTuples));
 					}
 				}
 			}
