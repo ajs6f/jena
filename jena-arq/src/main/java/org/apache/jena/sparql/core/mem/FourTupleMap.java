@@ -2,6 +2,7 @@ package org.apache.jena.sparql.core.mem;
 
 import org.apache.jena.atlas.lib.PMap;
 import org.apache.jena.atlas.lib.PersistentMap;
+import org.apache.jena.atlas.lib.PersistentSet;
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.mem.FourTupleMap.ThreeTupleMap;
 

@@ -1,9 +1,10 @@
 package org.apache.jena.sparql.core.mem;
 
 import static java.util.stream.Collectors.toMap;
+import static org.apache.jena.sparql.core.Quad.defaultGraphIRI;
 import static org.apache.jena.sparql.core.mem.IndexForm.GSPO;
 import static org.apache.jena.sparql.core.mem.IndexForm.choose;
-import static org.apache.jena.sparql.core.mem.IndexForm.forms;
+import static org.apache.jena.sparql.core.mem.IndexForm.indexForms;
 import static org.apache.jena.sparql.core.mem.QuadPattern.from;
 
 import java.util.EnumMap;
@@ -15,12 +16,12 @@ import org.apache.jena.sparql.core.Quad;
 
 public class HexIndex extends Index {
 
-	private final Map<IndexForm, Index> indexBlock = new EnumMap<>(forms().collect(toMap(x -> x, IndexForm::get)));
+	private final Map<IndexForm, Index> indexBlock = new EnumMap<>(indexForms().collect(toMap(x -> x, IndexForm::get)));
 
 	@Override
 	public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o, final boolean searchDefault) {
 		final IndexForm choice = choose(from(g, s, p, o));
-		return indexBlock.get(choice).find(g, s, p, o, searchDefault);
+		return indexBlock.get(choice).find(searchDefault ? defaultGraphIRI : g, s, p, o, searchDefault);
 	}
 
 	@Override

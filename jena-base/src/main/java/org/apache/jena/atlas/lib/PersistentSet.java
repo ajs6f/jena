@@ -1,15 +1,12 @@
-package org.apache.jena.sparql.core.mem;
+package org.apache.jena.atlas.lib;
 
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import org.pcollections.Empty;
-
 public interface PersistentSet<E> {
 
-	@SuppressWarnings("unchecked")
 	static <T> PersistentSet<T> empty() {
-		return (PersistentSet<T>) Empty.set();
+		return PSet.empty();
 	}
 
 	PersistentSet<E> plus(E e);

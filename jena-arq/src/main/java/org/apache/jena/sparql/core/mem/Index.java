@@ -7,9 +7,9 @@ import static org.apache.jena.atlas.iterator.Iter.singleton;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.jena.atlas.lib.PersistentSet;
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Quad;
-import org.apache.jena.sparql.core.journaling.Operation.InvertibleOperation;
 import org.apache.jena.sparql.core.mem.FourTupleMap.ThreeTupleMap;
 import org.apache.jena.sparql.core.mem.FourTupleMap.TwoTupleMap;
 
@@ -33,7 +33,7 @@ public abstract class Index {
 
 	public abstract Iterator<Quad> find(Node g, Node s, Node p, Node o, boolean searchDefaultGraph);
 
-	public Iterator<Quad> _find(final Node first, final Node second, final Node third, final Node fourth) {
+	protected Iterator<Quad> _find(final Node first, final Node second, final Node third, final Node fourth) {
 		final FourTupleMap indexMap = local.get();
 		if (first != null) {
 			// a specific graph
@@ -94,7 +94,6 @@ public abstract class Index {
 		twoTuples = twoTuples.minus(third).plus(third, oneTuples);
 		threeTuples = threeTuples.minus(second).plus(second, twoTuples);
 		local.set(indexMap.minus(first).plus(first, threeTuples));
-
 	}
 
 	public abstract void delete(Quad q);
@@ -122,58 +121,4 @@ public abstract class Index {
 		master().set(local.get());
 		end();
 	}
-
-	public static abstract class QuadIndexOperation<SelfType extends QuadIndexOperation<SelfType, InverseType>, InverseType extends QuadIndexOperation<InverseType, SelfType>>
-			implements InvertibleOperation<Quad, Index, SelfType, InverseType> {
-
-		private final Quad quad;
-
-		public QuadIndexOperation(final Quad q) {
-			this.quad = q;
-		}
-
-		@Override
-		public Quad data() {
-			return quad;
-		}
-
-		public static class QuadIndexAddition extends QuadIndexOperation<QuadIndexAddition, QuadIndexDeletion> {
-
-			public QuadIndexAddition(final Quad q) {
-				super(q);
-			}
-
-			@Override
-			public QuadIndexDeletion inverse() {
-				return new QuadIndexDeletion(data());
-			}
-
-			@Override
-			public void actOn(final Index index) {
-				// TODO Auto-generated method stub
-			}
-
-		}
-
-		public static class QuadIndexDeletion extends QuadIndexOperation<QuadIndexDeletion, QuadIndexAddition> {
-
-			public QuadIndexDeletion(final Quad q) {
-				super(q);
-			}
-
-			@Override
-			public QuadIndexAddition inverse() {
-				return new QuadIndexAddition(data());
-			}
-
-			@Override
-			public void actOn(final Index index) {
-				// TODO Auto-generated method stub
-
-			}
-
-		}
-
-	}
-
 }

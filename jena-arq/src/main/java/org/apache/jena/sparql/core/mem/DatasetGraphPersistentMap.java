@@ -47,7 +47,7 @@ public class DatasetGraphPersistentMap extends DatasetGraphQuad implements Trans
 		if (isInTransaction()) throw new JenaException("Transactions cannot be nested!");
 		transactionType.set(readWrite);
 		isInTransaction.set(true);
-		getLock().enterCriticalSection(readWrite.equals(READ));
+		getLock().enterCriticalSection(readWrite.equals(READ)); // get the dataset write lock, if needed.
 		commitLock.readLock().lock(); // if a commit is proceeding, wait so that we see a coherent index state
 		try {
 			index.begin();
@@ -118,8 +118,7 @@ public class DatasetGraphPersistentMap extends DatasetGraphQuad implements Trans
 			} finally {
 				end();
 			}
-		}
-		else if (transactionType().equals(WRITE)) mutator.accept(q);
+		} else if (transactionType().equals(WRITE)) mutator.accept(q);
 		else throw new JenaException("Tried to write inside a READ transaction!");
 	}
 
@@ -138,8 +137,33 @@ public class DatasetGraphPersistentMap extends DatasetGraphQuad implements Trans
 		return index.listGraphNodes();
 	}
 
+	private Consumer<Graph> addGraph(final Node name) {
+		return g -> g.find(ANY, ANY, ANY).forEachRemaining(t -> add(new Quad(name, t)));
+	}
+
+	private final Consumer<Graph> removeGraph = g -> g.find(ANY, ANY, ANY).forEachRemaining(g::delete);
+
 	@Override
 	public void addGraph(final Node graphName, final Graph graph) {
-		graph.find(ANY, ANY, ANY).forEachRemaining(t -> add(new Quad(graphName, t)));
+		mutateGraph(addGraph(graphName), graph);
+	}
+
+	@Override
+	public void removeGraph(final Node graphName) {
+		mutateGraph(removeGraph, getGraph(graphName));
+	}
+
+	private void mutateGraph(final Consumer<Graph> mutator, final Graph g) {
+		if (!isInTransaction()) {
+			// wrap this mutation in a WRITE transaction
+			begin(WRITE);
+			try {
+				mutator.accept(g);
+				commit();
+			} finally {
+				end();
+			}
+		} else if (transactionType().equals(WRITE)) mutator.accept(g);
+		else throw new JenaException("Tried to write inside a READ transaction!");
 	}
 }

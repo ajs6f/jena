@@ -1,22 +1,16 @@
 package org.apache.jena.sparql.core.mem;
 
+import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
-import static java.util.EnumSet.of;
-import static org.apache.jena.ext.com.google.common.collect.ImmutableSet.of;
-import static org.apache.jena.ext.com.google.common.collect.Maps.immutableEnumMap;
-import static org.apache.jena.sparql.core.mem.QuadPattern.Slot.GRAPH;
-import static org.apache.jena.sparql.core.mem.QuadPattern.Slot.OBJECT;
-import static org.apache.jena.sparql.core.mem.QuadPattern.Slot.PREDICATE;
-import static org.apache.jena.sparql.core.mem.QuadPattern.Slot.SUBJECT;
+import static java.util.stream.Stream.generate;
+import static org.apache.jena.sparql.core.mem.QuadPattern.Slot.*;
 
-import java.util.EnumSet;
 import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
-import org.apache.jena.ext.com.google.common.collect.ImmutableMap;
 import org.apache.jena.graph.Node;
 import org.apache.jena.shared.JenaException;
 import org.apache.jena.sparql.core.Quad;
@@ -31,7 +25,28 @@ public enum IndexForm implements Supplier<Index> {
 	GSPO {
 		@Override
 		public Index get() {
-			return new GraphSubjectPredicateObjectIndex();
+			return new Index() {
+				@Override
+				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o,
+						final boolean unused) {
+					return _find(g, s, p, o);
+				}
+
+				@Override
+				public void add(final Quad q) {
+					add(q.getGraph(), q.getSubject(), q.getPredicate(), q.getObject());
+				}
+
+				@Override
+				public void delete(final Quad q) {
+					delete(q.getGraph(), q.getSubject(), q.getPredicate(), q.getObject());
+				}
+			};
+		}
+
+		@Override
+		public boolean avoidsIteration(final QuadPattern qp) {
+			return avoidsIteration(qp, asList(GRAPH, SUBJECT, PREDICATE, OBJECT));
 		}
 	},
 	GOPS {
@@ -40,68 +55,156 @@ public enum IndexForm implements Supplier<Index> {
 			return new Index() {
 
 				@Override
-				public Iterator<Quad> find(Node g, Node s, Node p, Node o, boolean searchDefaultGraph) {
+				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o,
+						final boolean unused) {
 					return _find(g, o, p, s);
 				}
 
 				@Override
-				public void add(Quad q) {
+				public void add(final Quad q) {
 					add(q.getGraph(), q.getObject(), q.getPredicate(), q.getSubject());
 				}
 
 				@Override
-				public void delete(Quad q) {
+				public void delete(final Quad q) {
 					delete(q.getGraph(), q.getObject(), q.getPredicate(), q.getSubject());
 				}
 			};
+
+		}
+
+		@Override
+		public boolean avoidsIteration(final QuadPattern qp) {
+			return avoidsIteration(qp, asList(GRAPH, OBJECT, PREDICATE, SUBJECT));
 		}
 	},
 	SPOG {
 		@Override
 		public Index get() {
-			return new GraphSubjectPredicateObjectIndex();
+			return new Index() {
+
+				@Override
+				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o,
+						final boolean unused) {
+					return _find(s, p, o, g);
+				}
+
+				@Override
+				public void add(final Quad q) {
+					add(q.getSubject(), q.getPredicate(), q.getObject(), q.getGraph());
+				}
+
+				@Override
+				public void delete(final Quad q) {
+					delete(q.getSubject(), q.getPredicate(), q.getObject(), q.getGraph());
+				}
+			};
+		}
+
+		@Override
+		public boolean avoidsIteration(final QuadPattern qp) {
+			return avoidsIteration(qp, asList(SUBJECT, PREDICATE, OBJECT, GRAPH));
 		}
 	},
 	OSGP {
 		@Override
 		public Index get() {
-			return new GraphSubjectPredicateObjectIndex();
+			return new Index() {
+
+				@Override
+				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o,
+						final boolean unused) {
+					return _find(o, s, g, p);
+				}
+
+				@Override
+				public void add(final Quad q) {
+					add(q.getObject(), q.getSubject(), q.getGraph(), q.getPredicate());
+				}
+
+				@Override
+				public void delete(final Quad q) {
+					delete(q.getObject(), q.getSubject(), q.getGraph(), q.getPredicate());
+				}
+			};
+		}
+
+		@Override
+		public boolean avoidsIteration(final QuadPattern qp) {
+			return avoidsIteration(qp, asList(OBJECT, SUBJECT, GRAPH, PREDICATE));
 		}
 	},
 	PGSO {
 		@Override
 		public Index get() {
-			return new GraphSubjectPredicateObjectIndex();
+			return new Index() {
+
+				@Override
+				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o,
+						final boolean searchDefaultGraph) {
+					return _find(p, g, s, o);
+				}
+
+				@Override
+				public void add(final Quad q) {
+					add(q.getPredicate(), q.getGraph(), q.getSubject(), q.getObject());
+				}
+
+				@Override
+				public void delete(final Quad q) {
+					delete(q.getPredicate(), q.getGraph(), q.getSubject(), q.getObject());
+				}
+			};
+		}
+
+		@Override
+		public boolean avoidsIteration(final QuadPattern qp) {
+			return avoidsIteration(qp, asList(PREDICATE, GRAPH, SUBJECT, OBJECT));
 		}
 	},
 	OPSG {
 		@Override
 		public Index get() {
-			return new GraphSubjectPredicateObjectIndex();
+			return new Index() {
+
+				@Override
+				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o,
+						final boolean searchDefaultGraph) {
+					return _find(o, p, s, g);
+				}
+
+				@Override
+				public void add(final Quad q) {
+					add(q.getObject(), q.getPredicate(), q.getSubject(), q.getGraph());
+				}
+
+				@Override
+				public void delete(final Quad q) {
+					delete(q.getObject(), q.getPredicate(), q.getSubject(), q.getGraph());
+				}
+			};
+		}
+
+		@Override
+		public boolean avoidsIteration(final QuadPattern qp) {
+			return avoidsIteration(qp, asList(OBJECT, PREDICATE, SUBJECT, GRAPH));
 		}
 	};
 
-	public boolean avoidsIteration(final QuadPattern qp) {
-		return selector.get(this).stream().anyMatch(qp::matches);
+	public abstract boolean avoidsIteration(final QuadPattern qp);
+
+	private static boolean avoidsIteration(final QuadPattern qp, final List<Slot> fullPattern) {
+		final AtomicInteger i = new AtomicInteger(4);
+		return generate(() -> i.getAndDecrement()).limit(4).map(index -> fullPattern.subList(0, index)).anyMatch(qp);
 	}
 
-	public static IndexForm choose(QuadPattern qp) {
-		return forms().filter(f -> f.avoidsIteration(qp)).findFirst().orElseThrow(() -> new JenaException());
+	public static IndexForm choose(final QuadPattern qp) {
+		return indexForms().filter(f -> f.avoidsIteration(qp)).findFirst()
+				.orElseThrow(() -> new JenaException("No index available for impossible query pattern!"));
 	}
 
-	public static Stream<IndexForm> forms() {
+	public static Stream<IndexForm> indexForms() {
 		return stream(values());
 	}
-
-	private static Map<IndexForm, Set<EnumSet<Slot>>> selector = immutableEnumMap(
-			ImmutableMap.<IndexForm, Set<EnumSet<Slot>>> builder()
-					.put(GSPO,
-							of(of(GRAPH), of(GRAPH, SUBJECT), of(GRAPH, SUBJECT, PREDICATE),
-									of(GRAPH, SUBJECT, PREDICATE, OBJECT)))
-					.put(GOPS,
-							of(of(GRAPH), of(GRAPH, OBJECT), of(GRAPH, OBJECT, PREDICATE),
-									of(GRAPH, OBJECT, PREDICATE, SUBJECT)))
-			.put(SPOG, of(of(SUBJECT), of(SUBJECT, PREDICATE), of(SUBJECT, PREDICATE, OBJECT),
-					of(SUBJECT, PREDICATE, OBJECT, GRAPH))).build());
 
 }
