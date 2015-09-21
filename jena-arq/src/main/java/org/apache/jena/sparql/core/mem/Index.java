@@ -26,13 +26,14 @@ import java.util.Iterator;
 
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Quad;
+import org.apache.jena.sparql.core.Transactional;
 
 /**
- * A single or multiple index of {@link Quad}s. Implementations may wish to override {@link #listGraphNodes()} with a
+ * A single or multiplex index of {@link Quad}s. Implementations may wish to override {@link #listGraphNodes()} with a
  * more efficient implementation.
  *
  */
-public interface Index {
+public interface Index extends Transactional {
 
 	Iterator<Quad> find(Node g, Node s, Node p, Node o);
 

@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.jena.atlas.lib.PersistentSet;
 import org.apache.jena.graph.Node;
+import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.mem.FourTupleMap.ThreeTupleMap;
 import org.apache.jena.sparql.core.mem.FourTupleMap.TwoTupleMap;
@@ -56,11 +57,27 @@ public abstract class PMapBasedIndex implements Index {
 
 	ThreadLocal<FourTupleMap> local;
 
+	@Override
+	public void begin(final ReadWrite rw) {
+		begin();
+	}
+
 	public void begin() {
 		debug("Capturing transactional reference.");
 		local = withInitial(() -> master().get());
 	}
 
+	@Override
+	public void abort() {
+		end();
+	}
+
+	@Override
+	public boolean isInTransaction() {
+		return local != null;
+	};
+
+	@Override
 	public void end() {
 		debug("Abandoning transactional reference.");
 		local = null;
@@ -148,6 +165,7 @@ public abstract class PMapBasedIndex implements Index {
 		}
 	}
 
+	@Override
 	public void commit() {
 		debug("Swapping transactional reference in for shared reference");
 		master().set(local.get());
