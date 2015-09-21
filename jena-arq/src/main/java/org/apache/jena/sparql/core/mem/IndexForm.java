@@ -45,7 +45,7 @@ public enum IndexForm implements Supplier<Index> {
 		}
 
 		@Override
-		public boolean avoidsIteration(final QuadPattern qp) {
+		public boolean avoidsTraversal(final QuadPattern qp) {
 			return avoidsIteration(qp, asList(GRAPH, SUBJECT, PREDICATE, OBJECT));
 		}
 	},
@@ -74,7 +74,7 @@ public enum IndexForm implements Supplier<Index> {
 		}
 
 		@Override
-		public boolean avoidsIteration(final QuadPattern qp) {
+		public boolean avoidsTraversal(final QuadPattern qp) {
 			return avoidsIteration(qp, asList(GRAPH, OBJECT, PREDICATE, SUBJECT));
 		}
 	},
@@ -102,7 +102,7 @@ public enum IndexForm implements Supplier<Index> {
 		}
 
 		@Override
-		public boolean avoidsIteration(final QuadPattern qp) {
+		public boolean avoidsTraversal(final QuadPattern qp) {
 			return avoidsIteration(qp, asList(SUBJECT, PREDICATE, OBJECT, GRAPH));
 		}
 	},
@@ -130,7 +130,7 @@ public enum IndexForm implements Supplier<Index> {
 		}
 
 		@Override
-		public boolean avoidsIteration(final QuadPattern qp) {
+		public boolean avoidsTraversal(final QuadPattern qp) {
 			return avoidsIteration(qp, asList(OBJECT, SUBJECT, GRAPH, PREDICATE));
 		}
 	},
@@ -158,7 +158,7 @@ public enum IndexForm implements Supplier<Index> {
 		}
 
 		@Override
-		public boolean avoidsIteration(final QuadPattern qp) {
+		public boolean avoidsTraversal(final QuadPattern qp) {
 			return avoidsIteration(qp, asList(PREDICATE, GRAPH, SUBJECT, OBJECT));
 		}
 	},
@@ -186,12 +186,12 @@ public enum IndexForm implements Supplier<Index> {
 		}
 
 		@Override
-		public boolean avoidsIteration(final QuadPattern qp) {
+		public boolean avoidsTraversal(final QuadPattern qp) {
 			return avoidsIteration(qp, asList(OBJECT, PREDICATE, SUBJECT, GRAPH));
 		}
 	};
 
-	public abstract boolean avoidsIteration(final QuadPattern qp);
+	public abstract boolean avoidsTraversal(final QuadPattern qp);
 
 	private static boolean avoidsIteration(final QuadPattern qp, final List<Slot> fullPattern) {
 		final AtomicInteger i = new AtomicInteger(4);
@@ -199,7 +199,7 @@ public enum IndexForm implements Supplier<Index> {
 	}
 
 	public static IndexForm choose(final QuadPattern qp) {
-		return indexForms().filter(f -> f.avoidsIteration(qp)).findFirst()
+		return indexForms().filter(f -> f.avoidsTraversal(qp)).findFirst()
 				.orElseThrow(() -> new JenaException("No index available for impossible query pattern!"));
 	}
 

@@ -25,10 +25,12 @@ public abstract class Index {
 	ThreadLocal<FourTupleMap> local;
 
 	public void begin() {
+		// capture transactional reference
 		local = withInitial(() -> master().get());
 	}
 
 	public void end() {
+		// abandon transactional reference
 		local = null;
 	}
 
@@ -57,35 +59,31 @@ public abstract class Index {
 					return oneTuples.stream().map(slot4 -> create(first, second, third, slot4)).iterator();
 				}
 				// wildcard third slot
-				return twoTuples
-						.descend(e -> e.getValue().stream().map(slot4 -> create(first, second, e.getKey(), slot4)))
+				return twoTuples.descend(
+						(slot3, oneTuples) -> oneTuples.stream().map(slot4 -> create(first, second, slot3, slot4)))
 						.iterator();
 			}
 			// wildcard second slot
 			return threeTuples
-					.descend(
-							slot2 -> slot2.getValue()
-									.descend(slot3 -> slot3.getValue().stream()
-											.map(slot4 -> create(first, slot2.getKey(), slot3.getKey(), slot4))))
+					.descend((slot2, twoTuples) -> twoTuples.descend(
+							(slot3, oneTuples) -> oneTuples.stream().map(slot4 -> create(first, slot2, slot3, slot4))))
 					.iterator();
 		}
 		// wildcard everything
 		return fourTuples
-				.descend(slot1 -> slot1.getValue()
-						.descend(slot2 -> slot2.getValue()
-								.descend(slot3 -> slot3.getValue().stream()
-										.map(slot4 -> create(slot1.getKey(), slot2.getKey(), slot3.getKey(), slot4)))))
+				.descend((slot1,
+						threeTuples) -> threeTuples.descend((slot2, twoTuples) -> twoTuples.descend((slot3,
+								oneTuples) -> oneTuples.stream().map(slot4 -> create(slot1, slot2, slot3, slot4)))))
 				.iterator();
-
 	}
 
 	public abstract void add(Quad q);
 
 	public void add(final Node first, final Node second, final Node third, final Node fourth) {
-		FourTupleMap indexMap = local.get();
-		if (!indexMap.containsKey(first)) indexMap = indexMap.plus(first, ThreeTupleMap.empty());
+		FourTupleMap fourTuples = local.get();
+		if (!fourTuples.containsKey(first)) fourTuples = fourTuples.plus(first, ThreeTupleMap.empty());
 
-		ThreeTupleMap threeTuples = indexMap.get(first);
+		ThreeTupleMap threeTuples = fourTuples.get(first);
 		if (!threeTuples.containsKey(second)) threeTuples = threeTuples.plus(second, TwoTupleMap.empty());
 
 		TwoTupleMap twoTuples = threeTuples.get(third);
@@ -96,7 +94,7 @@ public abstract class Index {
 
 		twoTuples = twoTuples.minus(third).plus(third, oneTuples);
 		threeTuples = threeTuples.minus(second).plus(second, twoTuples);
-		local.set(indexMap.minus(first).plus(first, threeTuples));
+		local.set(fourTuples.minus(first).plus(first, threeTuples));
 	}
 
 	public abstract void delete(Quad q);
@@ -120,7 +118,8 @@ public abstract class Index {
 		}
 	}
 
-	synchronized public void commit() {
+	public void commit() {
+		// swap transactional reference in for shared reference
 		master().set(local.get());
 		end();
 	}

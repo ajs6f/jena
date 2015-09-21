@@ -28,39 +28,39 @@ public class TestIndexForm {
 	private static final QuadPattern allWildcardQuery = from(null, null, null, null);
 
 	@Test
-	public void testAllWildcardQueryCannotAvoidTraversal() {
-		assertTrue(indexForms().noneMatch(form -> form.avoidsIteration(allWildcardQuery)));
+	public void anAllWildcardQueryCannotAvoidTraversal() {
+		assertTrue(indexForms().noneMatch(form -> form.avoidsTraversal(allWildcardQuery)));
 	}
 
 	@Test
-	public void testAllNonWildcardQueriesCanAvoidTraversal() {
+	public void allQueriesWithAtLeastOneConcreteNodeCanAvoidTraversal() {
 		assertTrue(quadPatterns.stream().map(QuadPattern::new).filter(qp -> !allWildcardQuery.equals(qp))
-				.allMatch(this::avoidsIteration));
+				.allMatch(this::avoidsIterationForQuadPattern));
 	}
 
-	private boolean avoidsIteration(final QuadPattern qp) {
-		return indexForms().anyMatch(form -> form.avoidsIteration(qp));
+	private boolean avoidsIterationForQuadPattern(final QuadPattern qp) {
+		return indexForms().anyMatch(form -> form.avoidsTraversal(qp));
 	}
 
 	@Test
-	public void testAvoidsIterationGSPO() {
+	public void testCorrectlyAvoidsIterationGSPO() {
 		final Set<QuadPattern> correctAnswers = of(from(concreteNode, concreteNode, concreteNode, concreteNode),
 				from(concreteNode, concreteNode, concreteNode, ANY), from(concreteNode, concreteNode, ANY, ANY),
 				from(concreteNode, ANY, ANY, ANY));
-		testAvoidsIteration(GSPO, correctAnswers);
+		testAvoidsTraversal(GSPO, correctAnswers);
 	}
 
 	@Test
-	public void testAvoidsIterationGOPS() {
+	public void testCorrectlyAvoidsIterationGOPS() {
 		final Set<QuadPattern> correctAnswers = of(from(concreteNode, concreteNode, concreteNode, concreteNode),
 				from(concreteNode, ANY, ANY, concreteNode), from(concreteNode, ANY, concreteNode, concreteNode),
 				from(concreteNode, ANY, ANY, ANY));
-		testAvoidsIteration(GOPS, correctAnswers);
+		testAvoidsTraversal(GOPS, correctAnswers);
 	}
 
-	public void testAvoidsIteration(final IndexForm indexForm, final Set<QuadPattern> correctAnswers) {
+	public void testAvoidsTraversal(final IndexForm indexForm, final Set<QuadPattern> correctAnswers) {
 		assertEquals(correctAnswers,
-				quadPatterns.stream().map(QuadPattern::new).filter(indexForm::avoidsIteration).collect(toSet()));
+				quadPatterns.stream().map(QuadPattern::new).filter(indexForm::avoidsTraversal).collect(toSet()));
 	}
 
 }
