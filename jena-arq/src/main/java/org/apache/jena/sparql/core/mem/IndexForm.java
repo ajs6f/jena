@@ -1,20 +1,20 @@
 package org.apache.jena.sparql.core.mem;
-
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
-import static java.util.stream.Stream.generate;
-import static org.apache.jena.sparql.core.mem.QuadPattern.Slot.*;
+import static java.util.EnumSet.noneOf;
+import static java.util.stream.Stream.iterate;
+import static org.apache.jena.sparql.core.mem.IndexForm.Slot.*;
 
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
 import org.apache.jena.shared.JenaException;
 import org.apache.jena.sparql.core.Quad;
-import org.apache.jena.sparql.core.mem.QuadPattern.Slot;
 
 /**
  * The six covering index forms and machinery to determine which of them is best suited to answer a given query.
@@ -22,7 +22,7 @@ import org.apache.jena.sparql.core.mem.QuadPattern.Slot;
  */
 public enum IndexForm implements Supplier<Index> {
 
-	GSPO {
+	GSPO(asList(GRAPH, SUBJECT, PREDICATE, OBJECT)) {
 		@Override
 		public Index get() {
 			return new Index() {
@@ -43,13 +43,8 @@ public enum IndexForm implements Supplier<Index> {
 				}
 			};
 		}
-
-		@Override
-		public boolean avoidsTraversal(final QuadPattern qp) {
-			return avoidsIteration(qp, asList(GRAPH, SUBJECT, PREDICATE, OBJECT));
-		}
 	},
-	GOPS {
+	GOPS(asList(GRAPH, OBJECT, PREDICATE, SUBJECT)) {
 		@Override
 		public Index get() {
 			return new Index() {
@@ -72,13 +67,8 @@ public enum IndexForm implements Supplier<Index> {
 			};
 
 		}
-
-		@Override
-		public boolean avoidsTraversal(final QuadPattern qp) {
-			return avoidsIteration(qp, asList(GRAPH, OBJECT, PREDICATE, SUBJECT));
-		}
 	},
-	SPOG {
+	SPOG(asList(SUBJECT, PREDICATE, OBJECT, GRAPH)) {
 		@Override
 		public Index get() {
 			return new Index() {
@@ -100,13 +90,8 @@ public enum IndexForm implements Supplier<Index> {
 				}
 			};
 		}
-
-		@Override
-		public boolean avoidsTraversal(final QuadPattern qp) {
-			return avoidsIteration(qp, asList(SUBJECT, PREDICATE, OBJECT, GRAPH));
-		}
 	},
-	OSGP {
+	OSGP(asList(OBJECT, SUBJECT, GRAPH, PREDICATE)) {
 		@Override
 		public Index get() {
 			return new Index() {
@@ -128,13 +113,8 @@ public enum IndexForm implements Supplier<Index> {
 				}
 			};
 		}
-
-		@Override
-		public boolean avoidsTraversal(final QuadPattern qp) {
-			return avoidsIteration(qp, asList(OBJECT, SUBJECT, GRAPH, PREDICATE));
-		}
 	},
-	PGSO {
+	PGSO(asList(PREDICATE, GRAPH, SUBJECT, OBJECT)) {
 		@Override
 		public Index get() {
 			return new Index() {
@@ -156,13 +136,8 @@ public enum IndexForm implements Supplier<Index> {
 				}
 			};
 		}
-
-		@Override
-		public boolean avoidsTraversal(final QuadPattern qp) {
-			return avoidsIteration(qp, asList(PREDICATE, GRAPH, SUBJECT, OBJECT));
-		}
 	},
-	OPSG {
+	OPSG(asList(OBJECT, PREDICATE, SUBJECT, GRAPH)) {
 		@Override
 		public Index get() {
 			return new Index() {
@@ -184,23 +159,34 @@ public enum IndexForm implements Supplier<Index> {
 				}
 			};
 		}
-
-		@Override
-		public boolean avoidsTraversal(final QuadPattern qp) {
-			return avoidsIteration(qp, asList(OBJECT, PREDICATE, SUBJECT, GRAPH));
-		}
 	};
 
-	public abstract boolean avoidsTraversal(final QuadPattern qp);
-
-	private static boolean avoidsIteration(final QuadPattern qp, final List<Slot> fullPattern) {
-		final AtomicInteger i = new AtomicInteger(4);
-		return generate(() -> i.getAndDecrement()).limit(4).map(index -> fullPattern.subList(0, index)).anyMatch(qp);
+	public static enum Slot {
+		GRAPH, SUBJECT, PREDICATE, OBJECT;
 	}
 
-	public static IndexForm choose(final QuadPattern qp) {
-		return indexForms().filter(f -> f.avoidsTraversal(qp)).findFirst()
+	private IndexForm(final List<IndexForm.Slot> fp) {
+		this.fullpattern = fp;
+	}
+
+	public final List<IndexForm.Slot> fullpattern;
+
+	public boolean avoidsTraversal(final Set<IndexForm.Slot> pattern) {
+		return iterate(4, i -> i - 1).limit(4).map(j -> fullpattern.subList(0, j)).map(EnumSet::copyOf).anyMatch(pattern::equals);
+	}
+
+	public static IndexForm chooseFrom(final Node g, final Node s, final Node p, final Node o) {
+		final EnumSet<IndexForm.Slot> pattern = noneOf(IndexForm.Slot.class);
+		if (isConcrete(g)) pattern.add(GRAPH);
+		if (isConcrete(s)) pattern.add(SUBJECT);
+		if (isConcrete(p)) pattern.add(PREDICATE);
+		if (isConcrete(o)) pattern.add(OBJECT);
+		return indexForms().filter(f -> f.avoidsTraversal(pattern)).findFirst()
 				.orElseThrow(() -> new JenaException("No index available for impossible query pattern!"));
+	}
+
+	private static boolean isConcrete(final Node n) {
+		return n != null && n.isConcrete();
 	}
 
 	public static Stream<IndexForm> indexForms() {
