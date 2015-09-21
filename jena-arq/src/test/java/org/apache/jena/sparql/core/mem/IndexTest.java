@@ -44,7 +44,7 @@ public abstract class IndexTest extends Assert {
 
 	protected static final Set<Slot> allWildcardQuery = of();
 
-	public void addAndRemoveSomeQuads(final Index index) {
+	public void addAndRemoveSomeQuads(final PMapBasedIndex index) {
 
 		// simple add-and-delete
 		index.begin();

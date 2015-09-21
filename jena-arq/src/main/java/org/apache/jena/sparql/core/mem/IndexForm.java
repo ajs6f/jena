@@ -37,12 +37,12 @@ import org.apache.jena.sparql.core.Quad;
  * The six covering index forms and machinery to determine which of them is best suited to answer a given query.
  *
  */
-public enum IndexForm implements Supplier<Index> {
+public enum IndexForm implements Supplier<PMapBasedIndex> {
 
 	GSPO(asList(GRAPH, SUBJECT, PREDICATE, OBJECT)) {
 		@Override
-		public Index get() {
-			return new Index(this.name()) {
+		public PMapBasedIndex get() {
+			return new PMapBasedIndex(this.name()) {
 				@Override
 				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
 					return _find(g, s, p, o);
@@ -50,20 +50,20 @@ public enum IndexForm implements Supplier<Index> {
 
 				@Override
 				public void add(final Quad q) {
-					add(q.getGraph(), q.getSubject(), q.getPredicate(), q.getObject());
+					_add(q.getGraph(), q.getSubject(), q.getPredicate(), q.getObject());
 				}
 
 				@Override
 				public void delete(final Quad q) {
-					delete(q.getGraph(), q.getSubject(), q.getPredicate(), q.getObject());
+					_delete(q.getGraph(), q.getSubject(), q.getPredicate(), q.getObject());
 				}
 			};
 		}
 	},
 	GOPS(asList(GRAPH, OBJECT, PREDICATE, SUBJECT)) {
 		@Override
-		public Index get() {
-			return new Index(this.name()) {
+		public PMapBasedIndex get() {
+			return new PMapBasedIndex(this.name()) {
 
 				@Override
 				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
@@ -72,12 +72,12 @@ public enum IndexForm implements Supplier<Index> {
 
 				@Override
 				public void add(final Quad q) {
-					add(q.getGraph(), q.getObject(), q.getPredicate(), q.getSubject());
+					_add(q.getGraph(), q.getObject(), q.getPredicate(), q.getSubject());
 				}
 
 				@Override
 				public void delete(final Quad q) {
-					delete(q.getGraph(), q.getObject(), q.getPredicate(), q.getSubject());
+					_delete(q.getGraph(), q.getObject(), q.getPredicate(), q.getSubject());
 				}
 			};
 
@@ -85,8 +85,8 @@ public enum IndexForm implements Supplier<Index> {
 	},
 	SPOG(asList(SUBJECT, PREDICATE, OBJECT, GRAPH)) {
 		@Override
-		public Index get() {
-			return new Index(this.name()) {
+		public PMapBasedIndex get() {
+			return new PMapBasedIndex(this.name()) {
 
 				@Override
 				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
@@ -95,20 +95,20 @@ public enum IndexForm implements Supplier<Index> {
 
 				@Override
 				public void add(final Quad q) {
-					add(q.getSubject(), q.getPredicate(), q.getObject(), q.getGraph());
+					_add(q.getSubject(), q.getPredicate(), q.getObject(), q.getGraph());
 				}
 
 				@Override
 				public void delete(final Quad q) {
-					delete(q.getSubject(), q.getPredicate(), q.getObject(), q.getGraph());
+					_delete(q.getSubject(), q.getPredicate(), q.getObject(), q.getGraph());
 				}
 			};
 		}
 	},
 	OSGP(asList(OBJECT, SUBJECT, GRAPH, PREDICATE)) {
 		@Override
-		public Index get() {
-			return new Index(this.name()) {
+		public PMapBasedIndex get() {
+			return new PMapBasedIndex(this.name()) {
 
 				@Override
 				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
@@ -117,20 +117,20 @@ public enum IndexForm implements Supplier<Index> {
 
 				@Override
 				public void add(final Quad q) {
-					add(q.getObject(), q.getSubject(), q.getGraph(), q.getPredicate());
+					_add(q.getObject(), q.getSubject(), q.getGraph(), q.getPredicate());
 				}
 
 				@Override
 				public void delete(final Quad q) {
-					delete(q.getObject(), q.getSubject(), q.getGraph(), q.getPredicate());
+					_delete(q.getObject(), q.getSubject(), q.getGraph(), q.getPredicate());
 				}
 			};
 		}
 	},
 	PGSO(asList(PREDICATE, GRAPH, SUBJECT, OBJECT)) {
 		@Override
-		public Index get() {
-			return new Index(this.name()) {
+		public PMapBasedIndex get() {
+			return new PMapBasedIndex(this.name()) {
 
 				@Override
 				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
@@ -139,20 +139,20 @@ public enum IndexForm implements Supplier<Index> {
 
 				@Override
 				public void add(final Quad q) {
-					add(q.getPredicate(), q.getGraph(), q.getSubject(), q.getObject());
+					_add(q.getPredicate(), q.getGraph(), q.getSubject(), q.getObject());
 				}
 
 				@Override
 				public void delete(final Quad q) {
-					delete(q.getPredicate(), q.getGraph(), q.getSubject(), q.getObject());
+					_delete(q.getPredicate(), q.getGraph(), q.getSubject(), q.getObject());
 				}
 			};
 		}
 	},
 	OPSG(asList(OBJECT, PREDICATE, SUBJECT, GRAPH)) {
 		@Override
-		public Index get() {
-			return new Index(this.name()) {
+		public PMapBasedIndex get() {
+			return new PMapBasedIndex(this.name()) {
 
 				@Override
 				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
@@ -161,12 +161,12 @@ public enum IndexForm implements Supplier<Index> {
 
 				@Override
 				public void add(final Quad q) {
-					add(q.getObject(), q.getPredicate(), q.getSubject(), q.getGraph());
+					_add(q.getObject(), q.getPredicate(), q.getSubject(), q.getGraph());
 				}
 
 				@Override
 				public void delete(final Quad q) {
-					delete(q.getObject(), q.getPredicate(), q.getSubject(), q.getGraph());
+					_delete(q.getObject(), q.getPredicate(), q.getSubject(), q.getGraph());
 				}
 			};
 		}

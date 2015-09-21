@@ -32,13 +32,13 @@ import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.mem.IndexForm.Slot;
 
-public class HexIndex extends Index {
+public class HexIndex extends PMapBasedIndex {
 
 	public HexIndex() {
 		super("HexIndex");
 	}
 
-	private final Map<IndexForm, Index> indexBlock = new EnumMap<IndexForm, Index>(
+	private final Map<IndexForm, PMapBasedIndex> indexBlock = new EnumMap<IndexForm, PMapBasedIndex>(
 			indexForms().collect(toMap(x -> x, IndexForm::get)));
 
 	@Override
@@ -66,22 +66,23 @@ public class HexIndex extends Index {
 		indexBlock.values().forEach(index -> index.delete(q));
 	}
 
-	Iterator<Node> listGraphNodes() {
+	@Override
+	public Iterator<Node> listGraphNodes() {
 		return indexBlock.get(GSPO).local.get().entrySet().stream().map(Map.Entry::getKey).iterator();
 	}
 
 	@Override
 	public void begin() {
-		indexBlock.values().forEach(Index::begin);
+		indexBlock.values().forEach(PMapBasedIndex::begin);
 	}
 
 	@Override
 	public void end() {
-		indexBlock.values().forEach(Index::end);
+		indexBlock.values().forEach(PMapBasedIndex::end);
 	}
 
 	@Override
 	public void commit() {
-		indexBlock.values().forEach(Index::commit);
+		indexBlock.values().forEach(PMapBasedIndex::commit);
 	}
 }
