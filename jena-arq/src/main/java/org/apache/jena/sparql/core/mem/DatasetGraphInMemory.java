@@ -150,20 +150,6 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 		mutate(index::delete, q);
 	}
 
-	private void mutate(final Consumer<Quad> mutator, final Quad q) {
-		if (!isInTransaction()) {
-			// wrap this mutation in a WRITE transaction
-			begin(WRITE);
-			try {
-				mutator.accept(q);
-				commit();
-			} finally {
-				end();
-			}
-		} else if (transactionType().equals(WRITE)) mutator.accept(q);
-		else throw new JenaException("Tried to write inside a READ transaction!");
-	}
-
 	@Override
 	public Graph getDefaultGraph() {
 		return createDefaultGraph(this);
@@ -171,7 +157,7 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 
 	@Override
 	public void setDefaultGraph(final Graph g) {
-		mutateGraph(graph -> {
+		mutate(graph -> {
 			removeGraph(defaultGraphNodeGenerated);
 			addGraph(defaultGraphNodeGenerated, graph);
 		} , g);
@@ -195,25 +181,30 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 
 	@Override
 	public void addGraph(final Node graphName, final Graph graph) {
-		mutateGraph(addGraph(graphName), graph);
+		mutate(addGraph(graphName), graph);
 	}
 
 	@Override
 	public void removeGraph(final Node graphName) {
-		mutateGraph(removeGraph, getGraph(graphName));
+		mutate(removeGraph, getGraph(graphName));
 	}
 
-	private void mutateGraph(final Consumer<Graph> mutator, final Graph g) {
+	/**
+	 * Wrap a mutation in a WRITE transaction iff necessary.
+	 *
+	 * @param mutator
+	 * @param payload
+	 */
+	private <T> void mutate(final Consumer<T> mutator, final T payload) {
 		if (!isInTransaction()) {
-			// wrap this mutation in a WRITE transaction
 			begin(WRITE);
 			try {
-				mutator.accept(g);
+				mutator.accept(payload);
 				commit();
 			} finally {
 				end();
 			}
-		} else if (transactionType().equals(WRITE)) mutator.accept(g);
+		} else if (transactionType().equals(WRITE)) mutator.accept(payload);
 		else throw new JenaException("Tried to write inside a READ transaction!");
 	}
 }

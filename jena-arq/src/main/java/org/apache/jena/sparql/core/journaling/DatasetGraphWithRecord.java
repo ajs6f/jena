@@ -26,7 +26,6 @@ import static org.apache.jena.sparql.graph.GraphFactory.createGraphMem;
 import java.util.ArrayList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.apache.jena.graph.Graph;
@@ -62,7 +61,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	 * Mutex permitting only one writer at a time to mutate the operation record.
 	 */
 	private final Lock recordLock = new ReentrantLock(true);
-	
+
 	/**
 	 * Indicates whether we should be recording operations. True iff we are in a WRITE-transaction and not aborting.
 	 */
@@ -98,40 +97,51 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 		this.record = record;
 	}
 
+	/**
+	 * Guards a mutation to the state of this dataset.
+	 *
+	 * @param data the data with which to mutate this dataset
+	 * @param mutator the kind of change to make
+	 */
+	private <T> void mutate(final T data, final Consumer<T> mutator) {
+		if (allowedToWrite()) mutator.accept(data);
+		else throw new JenaTransactionException("Tried to write in a non-WRITE transaction!");
+	}
+
 	@Override
 	public void add(final Quad quad) {
-		operate(quad, _add);
+		mutate(quad, _add);
 	}
 
 	@Override
 	public void delete(final Quad quad) {
-		operate(quad, _delete);
+		mutate(quad, _delete);
 	}
 
 	@Override
 	public void addGraph(final Node graphName, final Graph graph) {
-		operateOnGraph(graphName, graph, _addGraph);
+		mutate(graph, _addGraph(graphName));
 	}
 
 	@Override
 	public void removeGraph(final Node graphName) {
-		operateOnGraph(graphName, null, _removeGraph);
+		mutate(graphName, _removeGraph);
 	}
 
 	/**
 	 * A mutator that adds a graph to this dataset.
 	 */
-	private final BiConsumer<Node, Graph> _addGraph = (graphName, graph) -> {
-		// create an empty graph in the backing store
-		super.addGraph(graphName, createGraphMem());
-		// copy all triples into it
-		graph.find(ANY, ANY, ANY).forEachRemaining(t -> add(new Quad(graphName, t)));
-	};
+	private Consumer<Graph> _addGraph(final Node name) {
+		return g -> {
+			super.addGraph(name, createGraphMem());
+			g.find(ANY, ANY, ANY).forEachRemaining(t -> add(new Quad(name, t)));
+		};
+	}
 
 	/**
 	 * A mutator that removes a graph from this dataset.
 	 */
-	private final BiConsumer<Node, Graph> _removeGraph = (graphName, graph) -> {
+	private final Consumer<Node> _removeGraph = graphName -> {
 		// delete all triples in this graph in the backing store
 		deleteAny(graphName, ANY, ANY, ANY);
 		// remove the graph itself
@@ -157,29 +167,6 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 			if (isRecording()) record.accept(new QuadDeletion(quad));
 		}
 	};
-
-	/**
-	 * Guards a mutation to the state of this dataset.
-	 *
-	 * @param quad the quad with which to mutate this dataset
-	 * @param mutator the kind of change to make
-	 */
-	private void operate(final Quad quad, final Consumer<Quad> mutator) {
-		if (allowedToWrite()) mutator.accept(quad);
-		else throw new JenaTransactionException("Tried to write in a non-WRITE transaction!");
-	}
-
-	/**
-	 * Guards a mutation to the state of this dataset.
-	 *
-	 * @param graphName the name of the graph on which to operate
-	 * @param graph the graph on which to operate
-	 * @param mutator the kind of change to make
-	 */
-	private void operateOnGraph(final Node graphName, final Graph graph, final BiConsumer<Node, Graph> mutator) {
-		if (allowedToWrite()) mutator.accept(graphName, graph);
-		else throw new JenaTransactionException("Tried to write in a non_WRITE transaction!");
-	}
 
 	/**
 	 * @return true iff we are outside a transaction or inside a WRITE transaction
@@ -217,7 +204,7 @@ public class DatasetGraphWithRecord extends DatasetGraphWithLock {
 	@Override
 	protected void _begin(final ReadWrite readWrite) {
 		super._begin(readWrite);
-		if (readWrite.equals(WRITE)) startRecording();	
+		if (readWrite.equals(WRITE)) startRecording();
 	}
 
 	@Override
