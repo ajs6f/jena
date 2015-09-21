@@ -12,6 +12,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.mem.QuadPattern.Slot;
@@ -19,9 +20,9 @@ import org.junit.Test;
 
 public class TestIndexForm {
 
-
-
-	private static final Set<Set<Slot>> quadPatterns = powerSet(allOf(Slot.class));
+	private static Stream<QuadPattern> quadPatterns() {
+		return powerSet(allOf(Slot.class)).stream().map(QuadPattern::new);
+	}
 
 	private static final Node concreteNode = createBlankNode();
 
@@ -34,33 +35,30 @@ public class TestIndexForm {
 
 	@Test
 	public void allQueriesWithAtLeastOneConcreteNodeCanAvoidTraversal() {
-		assertTrue(quadPatterns.stream().map(QuadPattern::new).filter(qp -> !allWildcardQuery.equals(qp))
-				.allMatch(this::avoidsIterationForQuadPattern));
+		assertTrue(quadPatterns().filter(qp -> !allWildcardQuery.equals(qp)).allMatch(this::canAvoidTraversal));
 	}
 
-	private boolean avoidsIterationForQuadPattern(final QuadPattern qp) {
+	private boolean canAvoidTraversal(final QuadPattern qp) {
 		return indexForms().anyMatch(form -> form.avoidsTraversal(qp));
 	}
 
 	@Test
-	public void testCorrectlyAvoidsIterationGSPO() {
+	public void correctnessOfGSPO() {
 		final Set<QuadPattern> correctAnswers = of(from(concreteNode, concreteNode, concreteNode, concreteNode),
 				from(concreteNode, concreteNode, concreteNode, ANY), from(concreteNode, concreteNode, ANY, ANY),
 				from(concreteNode, ANY, ANY, ANY));
-		testAvoidsTraversal(GSPO, correctAnswers);
+		avoidsTraversal(GSPO, correctAnswers);
 	}
 
 	@Test
-	public void testCorrectlyAvoidsIterationGOPS() {
+	public void correctnessOfGOPS() {
 		final Set<QuadPattern> correctAnswers = of(from(concreteNode, concreteNode, concreteNode, concreteNode),
 				from(concreteNode, ANY, ANY, concreteNode), from(concreteNode, ANY, concreteNode, concreteNode),
 				from(concreteNode, ANY, ANY, ANY));
-		testAvoidsTraversal(GOPS, correctAnswers);
+		avoidsTraversal(GOPS, correctAnswers);
 	}
 
-	public void testAvoidsTraversal(final IndexForm indexForm, final Set<QuadPattern> correctAnswers) {
-		assertEquals(correctAnswers,
-				quadPatterns.stream().map(QuadPattern::new).filter(indexForm::avoidsTraversal).collect(toSet()));
+	public void avoidsTraversal(final IndexForm indexForm, final Set<QuadPattern> correctAnswers) {
+		assertEquals(correctAnswers, quadPatterns().filter(indexForm::avoidsTraversal).collect(toSet()));
 	}
-
 }
