@@ -120,7 +120,7 @@ public abstract class Index {
 		ThreeTupleMap threeTuples = fourTuples.get(first);
 		if (!threeTuples.containsKey(second)) threeTuples = threeTuples.plus(second, TwoTupleMap.empty());
 
-		TwoTupleMap twoTuples = threeTuples.get(third);
+		TwoTupleMap twoTuples = threeTuples.get(second);
 		if (!twoTuples.containsKey(third)) twoTuples = twoTuples.plus(third, PersistentSet.empty());
 
 		PersistentSet<Node> oneTuples = twoTuples.get(third);
@@ -140,7 +140,7 @@ public abstract class Index {
 		if (fourTuples.containsKey(first)) {
 			ThreeTupleMap threeTuples = fourTuples.get(first);
 			if (threeTuples.containsKey(second)) {
-				TwoTupleMap twoTuples = threeTuples.get(third);
+				TwoTupleMap twoTuples = threeTuples.get(second);
 				if (twoTuples.containsKey(third)) {
 					PersistentSet<Node> oneTuples = twoTuples.get(third);
 					if (oneTuples.contains(fourth)) {

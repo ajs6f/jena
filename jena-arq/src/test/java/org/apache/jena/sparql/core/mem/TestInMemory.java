@@ -23,6 +23,6 @@ import org.junit.runners.Suite;
 import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
-@SuiteClasses({ TestIndexForm.class, TestHexIndex.class })
+@SuiteClasses({ TestIndexForm.class, TestHexIndex.class, TestDatasetGraphInMemory.class })
 
-public class TestInMemoryDataset {}
+public class TestInMemory {}

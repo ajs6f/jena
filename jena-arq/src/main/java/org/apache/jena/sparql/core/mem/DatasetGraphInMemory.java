@@ -19,18 +19,24 @@
 package org.apache.jena.sparql.core.mem;
 
 import static java.lang.ThreadLocal.withInitial;
+import static java.util.Spliterators.spliteratorUnknownSize;
+import static java.util.stream.StreamSupport.stream;
 import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.query.ReadWrite.READ;
 import static org.apache.jena.query.ReadWrite.WRITE;
-import static org.apache.jena.sparql.core.GraphView.createDefaultGraph;
-import static org.apache.jena.sparql.core.GraphView.createNamedGraph;
+import static org.apache.jena.sparql.core.GraphView.*;
+import static org.apache.jena.sparql.core.Quad.isUnionGraph;
 
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
+import org.apache.jena.graph.Triple;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.shared.JenaException;
 import org.apache.jena.shared.Lock;
@@ -39,7 +45,7 @@ import org.apache.jena.sparql.core.DatasetGraphQuad;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Transactional;
 
-public class DatasetGraphPersistentMap extends DatasetGraphQuad implements Transactional {
+public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactional {
 
 	private final Lock writeLock = new MRPlusSWLock();
 
@@ -108,11 +114,28 @@ public class DatasetGraphPersistentMap extends DatasetGraphQuad implements Trans
 
 	@Override
 	public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
-		return index.find(g, s, p, o);
+		return safeFind(g, s, p, o);
 	}
 
 	@Override
 	public Iterator<Quad> findNG(final Node g, final Node s, final Node p, final Node o) {
+		return safeFind(g, s, p, o);
+	}
+
+	private Iterator<Quad> safeFind(final Node g, final Node s, final Node p, final Node o) {
+		if (!isInTransaction()) {
+			begin(READ);
+			try {
+				if (isUnionGraph(g)) {
+					final Stream<Quad> quads = stream(spliteratorUnknownSize(index.find(ANY, s, p, o), 0), false);
+					final Set<Triple> seenTriples = new HashSet<>();
+					return quads.filter(q -> !q.isDefaultGraph() && seenTriples.add(q.asTriple())).iterator();
+				}
+				return index.find(g, s, p, o);
+			} finally {
+				end();
+			}
+		}
 		return index.find(g, s, p, o);
 	}
 
@@ -147,7 +170,7 @@ public class DatasetGraphPersistentMap extends DatasetGraphQuad implements Trans
 
 	@Override
 	public Graph getGraph(final Node graphNode) {
-		return createNamedGraph(this, graphNode);
+		return isUnionGraph(graphNode) ? createUnionGraph(this) : createNamedGraph(this, graphNode);
 	}
 
 	@Override
