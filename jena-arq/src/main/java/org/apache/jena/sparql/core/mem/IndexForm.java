@@ -1,7 +1,7 @@
 package org.apache.jena.sparql.core.mem;
+
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
-import static java.util.EnumSet.noneOf;
 import static java.util.stream.Stream.iterate;
 import static org.apache.jena.sparql.core.mem.IndexForm.Slot.*;
 
@@ -13,7 +13,6 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
-import org.apache.jena.shared.JenaException;
 import org.apache.jena.sparql.core.Quad;
 
 /**
@@ -172,21 +171,12 @@ public enum IndexForm implements Supplier<Index> {
 	public final List<IndexForm.Slot> fullpattern;
 
 	public boolean avoidsTraversal(final Set<IndexForm.Slot> pattern) {
-		return iterate(4, i -> i - 1).limit(4).map(j -> fullpattern.subList(0, j)).map(EnumSet::copyOf).anyMatch(pattern::equals);
+		return iterate(4, i -> i - 1).limit(4).map(j -> fullpattern.subList(0, j)).map(EnumSet::copyOf)
+				.anyMatch(pattern::equals);
 	}
 
-	public static IndexForm chooseFrom(final Node g, final Node s, final Node p, final Node o) {
-		final EnumSet<IndexForm.Slot> pattern = noneOf(IndexForm.Slot.class);
-		if (isConcrete(g)) pattern.add(GRAPH);
-		if (isConcrete(s)) pattern.add(SUBJECT);
-		if (isConcrete(p)) pattern.add(PREDICATE);
-		if (isConcrete(o)) pattern.add(OBJECT);
-		return indexForms().filter(f -> f.avoidsTraversal(pattern)).findFirst()
-				.orElseThrow(() -> new JenaException("No index available for impossible query pattern!"));
-	}
-
-	private static boolean isConcrete(final Node n) {
-		return n != null && n.isConcrete();
+	public static IndexForm chooseFrom(final Set<Slot> pattern) {
+		return indexForms().filter(f -> f.avoidsTraversal(pattern)).findFirst().orElse(GSPO);
 	}
 
 	public static Stream<IndexForm> indexForms() {
