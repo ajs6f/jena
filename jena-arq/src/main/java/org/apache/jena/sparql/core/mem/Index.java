@@ -1,3 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.jena.sparql.core.mem;
 
 import static java.lang.ThreadLocal.withInitial;
@@ -18,7 +36,17 @@ import org.slf4j.Logger;
 
 public abstract class Index {
 
+	private final String name;
+
+	public Index(final String n) {
+		this.name = n;
+	}
+
 	private static final Logger log = getLogger(Index.class);
+
+	private void debug(final String msg, final Object... values) {
+		log.debug(name + ": " + msg, values);
+	}
 
 	private final AtomicReference<FourTupleMap> index = new AtomicReference<>(FourTupleMap.empty());
 
@@ -29,19 +57,19 @@ public abstract class Index {
 	ThreadLocal<FourTupleMap> local;
 
 	public void begin() {
-		// capture transactional reference
+		debug("Capturing transactional reference.");
 		local = withInitial(() -> master().get());
 	}
 
 	public void end() {
-		// abandon transactional reference
+		debug("Abandoning transactional reference.");
 		local = null;
 	}
 
-	public abstract Iterator<Quad> find(Node g, Node s, Node p, Node o, boolean searchDefaultGraph);
+	public abstract Iterator<Quad> find(Node g, Node s, Node p, Node o);
 
 	protected Iterator<Quad> _find(final Node first, final Node second, final Node third, final Node fourth) {
-		log.debug("Querying on four-tuple pattern: {} {} {} {} .", first, second, third, fourth);
+		debug("Querying on four-tuple pattern: {} {} {} {} .", first, second, third, fourth);
 		final FourTupleMap fourTuples = local.get();
 		if (first != null && first.isConcrete()) {
 			// a specific first slot value
@@ -84,8 +112,8 @@ public abstract class Index {
 
 	public abstract void add(Quad q);
 
-	public void add(final Node first, final Node second, final Node third, final Node fourth) {
-		log.debug("Adding four-tuple: {} {} {} {} .", first, second, third, fourth);
+	void add(final Node first, final Node second, final Node third, final Node fourth) {
+		debug("Adding four-tuple: {} {} {} {} .", first, second, third, fourth);
 		FourTupleMap fourTuples = local.get();
 		if (!fourTuples.containsKey(first)) fourTuples = fourTuples.plus(first, ThreeTupleMap.empty());
 
@@ -100,13 +128,14 @@ public abstract class Index {
 
 		twoTuples = twoTuples.minus(third).plus(third, oneTuples);
 		threeTuples = threeTuples.minus(second).plus(second, twoTuples);
-		log.debug("Setting transactional index to new value.");
+		debug("Setting transactional index to new value.");
 		local.set(fourTuples.minus(first).plus(first, threeTuples));
 	}
 
 	public abstract void delete(Quad q);
 
-	public void delete(final Node first, final Node second, final Node third, final Node fourth) {
+	void delete(final Node first, final Node second, final Node third, final Node fourth) {
+		debug("Removing four-tuple: {} {} {} {} .", first, second, third, fourth);
 		final FourTupleMap fourTuples = local.get();
 		if (fourTuples.containsKey(first)) {
 			ThreeTupleMap threeTuples = fourTuples.get(first);
@@ -126,7 +155,7 @@ public abstract class Index {
 	}
 
 	public void commit() {
-		// swap transactional reference in for shared reference
+		debug("Swapping transactional reference in for shared reference");
 		master().set(local.get());
 		end();
 	}

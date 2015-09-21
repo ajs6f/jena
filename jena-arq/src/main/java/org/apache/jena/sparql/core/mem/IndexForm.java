@@ -1,3 +1,21 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.jena.sparql.core.mem;
 
 import static java.util.Arrays.asList;
@@ -24,10 +42,9 @@ public enum IndexForm implements Supplier<Index> {
 	GSPO(asList(GRAPH, SUBJECT, PREDICATE, OBJECT)) {
 		@Override
 		public Index get() {
-			return new Index() {
+			return new Index(this.name()) {
 				@Override
-				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o,
-						final boolean unused) {
+				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
 					return _find(g, s, p, o);
 				}
 
@@ -46,11 +63,10 @@ public enum IndexForm implements Supplier<Index> {
 	GOPS(asList(GRAPH, OBJECT, PREDICATE, SUBJECT)) {
 		@Override
 		public Index get() {
-			return new Index() {
+			return new Index(this.name()) {
 
 				@Override
-				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o,
-						final boolean unused) {
+				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
 					return _find(g, o, p, s);
 				}
 
@@ -70,11 +86,10 @@ public enum IndexForm implements Supplier<Index> {
 	SPOG(asList(SUBJECT, PREDICATE, OBJECT, GRAPH)) {
 		@Override
 		public Index get() {
-			return new Index() {
+			return new Index(this.name()) {
 
 				@Override
-				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o,
-						final boolean unused) {
+				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
 					return _find(s, p, o, g);
 				}
 
@@ -93,11 +108,10 @@ public enum IndexForm implements Supplier<Index> {
 	OSGP(asList(OBJECT, SUBJECT, GRAPH, PREDICATE)) {
 		@Override
 		public Index get() {
-			return new Index() {
+			return new Index(this.name()) {
 
 				@Override
-				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o,
-						final boolean unused) {
+				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
 					return _find(o, s, g, p);
 				}
 
@@ -116,11 +130,10 @@ public enum IndexForm implements Supplier<Index> {
 	PGSO(asList(PREDICATE, GRAPH, SUBJECT, OBJECT)) {
 		@Override
 		public Index get() {
-			return new Index() {
+			return new Index(this.name()) {
 
 				@Override
-				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o,
-						final boolean searchDefaultGraph) {
+				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
 					return _find(p, g, s, o);
 				}
 
@@ -139,11 +152,10 @@ public enum IndexForm implements Supplier<Index> {
 	OPSG(asList(OBJECT, PREDICATE, SUBJECT, GRAPH)) {
 		@Override
 		public Index get() {
-			return new Index() {
+			return new Index(this.name()) {
 
 				@Override
-				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o,
-						final boolean searchDefaultGraph) {
+				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
 					return _find(o, p, s, g);
 				}
 
@@ -182,5 +194,4 @@ public enum IndexForm implements Supplier<Index> {
 	public static Stream<IndexForm> indexForms() {
 		return stream(values());
 	}
-
 }

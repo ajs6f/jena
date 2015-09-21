@@ -16,19 +16,13 @@
  * limitations under the License.
  */
 
-package org.apache.jena.shared;
+package org.apache.jena.sparql.core.mem;
 
-import java.util.concurrent.locks.ReentrantLock;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
+import org.junit.runners.Suite.SuiteClasses;
 
-public class MRPlusSWLock extends ReentrantLock implements Lock {
+@RunWith(Suite.class)
+@SuiteClasses({ TestIndexForm.class, TestHexIndex.class })
 
-	@Override
-	public void enterCriticalSection(final boolean readLockRequested) {
-		if (!readLockRequested) lock();
-	}
-
-	@Override
-	public void leaveCriticalSection() {
-		if (isHeldByCurrentThread()) unlock();
-	}
-}
+public class TestInMemoryDataset {}

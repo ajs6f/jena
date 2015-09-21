@@ -1,38 +1,37 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.apache.jena.sparql.core.mem;
 
-import static java.util.EnumSet.allOf;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.jena.ext.com.google.common.collect.ImmutableSet.of;
 import static org.apache.jena.ext.com.google.common.collect.Sets.newHashSet;
-import static org.apache.jena.ext.com.google.common.collect.Sets.powerSet;
-import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.sparql.core.mem.IndexForm.*;
 import static org.apache.jena.sparql.core.mem.IndexForm.Slot.*;
-import static org.junit.Assert.*;
-import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Stream;
 
-import org.apache.jena.graph.Node;
-import org.apache.jena.graph.NodeFactory;
-import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.mem.IndexForm.Slot;
 import org.junit.Test;
-import org.slf4j.Logger;
 
-public class TestIndexForm {
-
-	private static final Logger log = getLogger(TestIndexForm.class);
-
-	private static Stream<Set<Slot>> queryPatterns() {
-		return powerSet(allOf(Slot.class)).stream();
-	}
-
-	private static final Set<Slot> allWildcardQuery = of();
+public class TestIndexForm extends IndexTest {
 
 	@Test
 	public void anAllWildcardQueryCannotAvoidTraversal() {
@@ -130,22 +129,7 @@ public class TestIndexForm {
 	}
 
 	@Test
-	public void addAndRemoveAQuad() {
-		final Node sampleNode = NodeFactory.createURI("info:test");
-		final Quad q = Quad.create(sampleNode, sampleNode, sampleNode, sampleNode);
-		indexForms().forEach(form -> {
-			log.debug("Testing index form: {}", form);
-			final Index index = form.get();
-			index.begin();
-			index.add(q);
-			Iterator<Quad> contents = index.find(ANY, ANY, ANY, ANY, false);
-			assertTrue(contents.hasNext());
-			assertEquals(q, contents.next());
-			assertFalse(contents.hasNext());
-			index.delete(q);
-			contents = index.find(ANY, ANY, ANY, ANY, false);
-			assertFalse(contents.hasNext());
-			index.end();
-		});
+	public void addAndRemoveSomeQuads() {
+		indexForms().map(IndexForm::get).forEach(this::addAndRemoveSomeQuads);
 	}
 }
