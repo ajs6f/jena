@@ -30,11 +30,6 @@ import java.util.stream.Stream;
  */
 public interface PersistentMap<K, V, SelfType extends PersistentMap<K, V, SelfType>> {
 
-
-	public static <K, V> PersistentMap<K, V, PMap<K,V>> empty() {
-		return new PMap<>();
-	}
-
 	V get(K key);
 
 	SelfType plus(K key, V value);

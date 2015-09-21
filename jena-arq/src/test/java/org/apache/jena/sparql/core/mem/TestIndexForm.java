@@ -5,20 +5,28 @@ import static java.util.stream.Collectors.toSet;
 import static org.apache.jena.ext.com.google.common.collect.ImmutableSet.of;
 import static org.apache.jena.ext.com.google.common.collect.Sets.newHashSet;
 import static org.apache.jena.ext.com.google.common.collect.Sets.powerSet;
+import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.sparql.core.mem.IndexForm.*;
 import static org.apache.jena.sparql.core.mem.IndexForm.Slot.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import org.apache.jena.graph.Node;
+import org.apache.jena.graph.NodeFactory;
+import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.mem.IndexForm.Slot;
 import org.junit.Test;
+import org.slf4j.Logger;
 
 public class TestIndexForm {
+
+	private static final Logger log = getLogger(TestIndexForm.class);
 
 	private static Stream<Set<Slot>> queryPatterns() {
 		return powerSet(allOf(Slot.class)).stream();
@@ -111,7 +119,6 @@ public class TestIndexForm {
 			put(of(SUBJECT, PREDICATE, OBJECT), of(SPOG));
 			put(of(SUBJECT, PREDICATE, OBJECT, GRAPH), of(GSPO, GOPS, SPOG, OPSG, OSGP, PGSO));
 			put(of(), of(GSPO));
-
 		}
 	};
 
@@ -119,6 +126,26 @@ public class TestIndexForm {
 	public void aCorrectIndexIsChosenForEachPattern() {
 		answerKey.forEach((sample, correctAnswers) -> {
 			assertTrue(correctAnswers.contains(IndexForm.chooseFrom(sample)));
+		});
+	}
+
+	@Test
+	public void addAndRemoveAQuad() {
+		final Node sampleNode = NodeFactory.createURI("info:test");
+		final Quad q = Quad.create(sampleNode, sampleNode, sampleNode, sampleNode);
+		indexForms().forEach(form -> {
+			log.debug("Testing index form: {}", form);
+			final Index index = form.get();
+			index.begin();
+			index.add(q);
+			Iterator<Quad> contents = index.find(ANY, ANY, ANY, ANY, false);
+			assertTrue(contents.hasNext());
+			assertEquals(q, contents.next());
+			assertFalse(contents.hasNext());
+			index.delete(q);
+			contents = index.find(ANY, ANY, ANY, ANY, false);
+			assertFalse(contents.hasNext());
+			index.end();
 		});
 	}
 }

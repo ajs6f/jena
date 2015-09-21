@@ -5,35 +5,25 @@ import java.util.Set;
 
 import org.pcollections.Empty;
 
-public class PMap<K, V> implements PersistentMap<K, V, PMap<K,V>> {
+public abstract class PMap<K, V, SelfType extends PMap<K,V, SelfType>> implements PersistentMap<K, V, SelfType> {
 
-	private final org.pcollections.PMap<K, V> wrappedMap;
+	protected final org.pcollections.PMap<K, V> wrappedMap;
 
 	/**
 	 * @param wrappedMap
 	 */
-	PMap(final org.pcollections.PMap<K, V> wrappedMap) {
+	protected PMap(final org.pcollections.PMap<K, V> wrappedMap) {
 		this.wrappedMap = wrappedMap;
 	}
 
 
-	PMap() {
+	protected PMap() {
 		this(Empty.map());
 	}
 
 	@Override
 	public V get(final K key) {
 		return wrappedMap.get(key);
-	}
-
-	@Override
-	public PMap<K, V> plus(final K key, final V value) {
-		return new PMap<>(wrappedMap.plus(key, value));
-	}
-
-	@Override
-	public PMap<K, V> minus(final K key) {
-		return new PMap<>(wrappedMap.minus(key));
 	}
 
 	@Override

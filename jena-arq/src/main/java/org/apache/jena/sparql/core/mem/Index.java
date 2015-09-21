@@ -4,6 +4,7 @@ import static java.lang.ThreadLocal.withInitial;
 import static java.util.Collections.emptyIterator;
 import static org.apache.jena.atlas.iterator.Iter.singleton;
 import static org.apache.jena.sparql.core.Quad.create;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicReference;
@@ -13,8 +14,11 @@ import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.mem.FourTupleMap.ThreeTupleMap;
 import org.apache.jena.sparql.core.mem.FourTupleMap.TwoTupleMap;
+import org.slf4j.Logger;
 
 public abstract class Index {
+
+	private static final Logger log = getLogger(Index.class);
 
 	private final AtomicReference<FourTupleMap> index = new AtomicReference<>(FourTupleMap.empty());
 
@@ -37,20 +41,21 @@ public abstract class Index {
 	public abstract Iterator<Quad> find(Node g, Node s, Node p, Node o, boolean searchDefaultGraph);
 
 	protected Iterator<Quad> _find(final Node first, final Node second, final Node third, final Node fourth) {
+		log.debug("Querying on four-tuple pattern: {} {} {} {} .", first, second, third, fourth);
 		final FourTupleMap fourTuples = local.get();
-		if (first != null) {
+		if (first != null && first.isConcrete()) {
 			// a specific first slot value
 			if (!fourTuples.containsKey(first)) return emptyIterator();
 			final ThreeTupleMap threeTuples = fourTuples.get(first);
-			if (second != null) {
+			if (second != null && second.isConcrete()) {
 				// a specific second slot value
 				if (!threeTuples.containsKey(second)) return emptyIterator();
 				final TwoTupleMap twoTuples = threeTuples.get(second);
-				if (third != null) {
+				if (third != null && third.isConcrete()) {
 					// a specific third slot value
 					if (!twoTuples.containsKey(third)) return emptyIterator();
 					final PersistentSet<Node> oneTuples = twoTuples.get(third);
-					if (fourth != null) {
+					if (fourth != null && fourth.isConcrete()) {
 						// a specific fourth slot value
 						if (!oneTuples.contains(fourth)) return emptyIterator();
 						return singleton(create(first, second, third, fourth));
@@ -80,6 +85,7 @@ public abstract class Index {
 	public abstract void add(Quad q);
 
 	public void add(final Node first, final Node second, final Node third, final Node fourth) {
+		log.debug("Adding four-tuple: {} {} {} {} .", first, second, third, fourth);
 		FourTupleMap fourTuples = local.get();
 		if (!fourTuples.containsKey(first)) fourTuples = fourTuples.plus(first, ThreeTupleMap.empty());
 
@@ -94,6 +100,7 @@ public abstract class Index {
 
 		twoTuples = twoTuples.minus(third).plus(third, oneTuples);
 		threeTuples = threeTuples.minus(second).plus(second, twoTuples);
+		log.debug("Setting transactional index to new value.");
 		local.set(fourTuples.minus(first).plus(first, threeTuples));
 	}
 
