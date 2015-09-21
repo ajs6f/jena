@@ -24,5 +24,4 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({ TestIndexForm.class, TestHexIndex.class, TestDatasetGraphInMemory.class })
-
 public class TestInMemory {}

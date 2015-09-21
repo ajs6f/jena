@@ -25,6 +25,7 @@ import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.query.ReadWrite.READ;
 import static org.apache.jena.query.ReadWrite.WRITE;
 import static org.apache.jena.sparql.core.GraphView.*;
+import static org.apache.jena.sparql.core.Quad.defaultGraphNodeGenerated;
 import static org.apache.jena.sparql.core.Quad.isUnionGraph;
 
 import java.util.HashSet;
@@ -166,6 +167,14 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 	@Override
 	public Graph getDefaultGraph() {
 		return createDefaultGraph(this);
+	}
+
+	@Override
+	public void setDefaultGraph(final Graph g) {
+		mutateGraph(graph -> {
+			removeGraph(defaultGraphNodeGenerated);
+			addGraph(defaultGraphNodeGenerated, graph);
+		} , g);
 	}
 
 	@Override
