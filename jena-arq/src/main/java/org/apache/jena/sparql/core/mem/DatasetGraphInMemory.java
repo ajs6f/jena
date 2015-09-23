@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.apache.jena.graph.Graph;
@@ -41,14 +42,20 @@ import org.apache.jena.graph.Triple;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.shared.JenaException;
 import org.apache.jena.shared.Lock;
-import org.apache.jena.shared.MRPlusSWLock;
+import org.apache.jena.shared.LockMRPlusSW;
+import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.core.DatasetGraphQuad;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Transactional;
 
+/**
+ * A {@link DatasetGraph} backed by an {@link Index}. By default, this is a {@link HexIndex} designed for high-speed
+ * in-memory operation.
+ *
+ */
 public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactional {
 
-	private final Lock writeLock = new MRPlusSWLock();
+	private final Lock writeLock = new LockMRPlusSW();
 
 	/**
 	 * Commits must be atomic, and because a thread that is committing alters the various indexes one after another, we
@@ -60,11 +67,23 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 
 	private final ThreadLocal<ReadWrite> transactionType = withInitial(() -> null);
 
-	private final HexIndex index = new HexIndex();
+	private final Index index;
+
+	private Index index() {
+		return index;
+	}
 
 	@Override
 	public Lock getLock() {
 		return writeLock;
+	}
+
+	public DatasetGraphInMemory() {
+		this(new HexIndex());
+	}
+
+	public DatasetGraphInMemory(final Index i) {
+		this.index = i;
 	}
 
 	@Override
@@ -75,7 +94,7 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 		getLock().enterCriticalSection(readWrite.equals(READ)); // get the dataset write lock, if needed.
 		commitLock.readLock().lock(); // if a commit is proceeding, wait so that we see a coherent index state
 		try {
-			index.begin();
+			index().begin(readWrite);
 		} finally {
 			commitLock.readLock().unlock();
 		}
@@ -85,7 +104,7 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 	public void commit() {
 		commitLock.writeLock().lock();
 		try {
-			index.commit();
+			index().commit();
 		} finally {
 			commitLock.writeLock().unlock();
 		}
@@ -94,14 +113,15 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 
 	@Override
 	public void abort() {
-		index.end();
 		end();
 	}
 
 	@Override
 	public void end() {
+		index().end();
 		isInTransaction.set(false);
 		transactionType.set(null);
+		getLock().leaveCriticalSection();
 	}
 
 	@Override
@@ -123,31 +143,45 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 		return safeFind(g, s, p, o);
 	}
 
-	private Iterator<Quad> safeFind(final Node g, final Node s, final Node p, final Node o) {
+	private <T> Iterator<T> access(final Supplier<Iterator<T>> source) {
 		if (!isInTransaction()) {
 			begin(READ);
 			try {
-				if (isUnionGraph(g)) {
-					final Stream<Quad> quads = stream(spliteratorUnknownSize(index.find(ANY, s, p, o), 0), false);
-					final Set<Triple> seenTriples = new HashSet<>();
-					return quads.filter(q -> !q.isDefaultGraph() && seenTriples.add(q.asTriple())).iterator();
-				}
-				return index.find(g, s, p, o);
+				return source.get();
 			} finally {
 				end();
 			}
 		}
-		return index.find(g, s, p, o);
+		return source.get();
+	}
+
+	@Override
+	public Iterator<Node> listGraphNodes() {
+		return access(() -> index().listGraphNodes());
+	}
+
+	private Iterator<Quad> finder(final Node g, final Node s, final Node p, final Node o) {
+		if (isUnionGraph(g)) {
+			// implement union graph functionality
+			final Stream<Quad> quads = stream(spliteratorUnknownSize(index().find(ANY, s, p, o), 0), false);
+			final Set<Triple> seenTriples = new HashSet<>();
+			return quads.filter(q -> !q.isDefaultGraph() && seenTriples.add(q.asTriple())).iterator();
+		}
+		return index().find(g, s, p, o);
+	};
+
+	private Iterator<Quad> safeFind(final Node g, final Node s, final Node p, final Node o) {
+		return access(() -> finder(g, s, p, o));
 	}
 
 	@Override
 	public void add(final Quad q) {
-		mutate(index::add, q);
+		mutate(index()::add, q);
 	}
 
 	@Override
 	public void delete(final Quad q) {
-		mutate(index::delete, q);
+		mutate(index()::delete, q);
 	}
 
 	@Override
@@ -166,11 +200,6 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 	@Override
 	public Graph getGraph(final Node graphNode) {
 		return isUnionGraph(graphNode) ? createUnionGraph(this) : createNamedGraph(this, graphNode);
-	}
-
-	@Override
-	public Iterator<Node> listGraphNodes() {
-		return index.listGraphNodes();
 	}
 
 	private Consumer<Graph> addGraph(final Node name) {

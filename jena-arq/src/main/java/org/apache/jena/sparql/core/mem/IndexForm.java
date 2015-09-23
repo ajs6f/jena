@@ -34,7 +34,7 @@ import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Quad;
 
 /**
- * The six covering index forms and machinery to determine which of them is best suited to answer a given query.
+ * Six covering index forms and machinery to determine which of them is best suited to answer a given query.
  *
  */
 public enum IndexForm implements Supplier<PMapBasedIndex> {

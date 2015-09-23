@@ -20,7 +20,12 @@ package org.apache.jena.shared;
 
 import java.util.concurrent.locks.ReentrantLock;
 
-public class MRPlusSWLock extends ReentrantLock implements Lock {
+/**
+ * A multiple-reader plus single-writer lock. This lock permits readers to obtain their locks under any condition, but
+ * allow only one writer at a time. Writers can acquire a read lock, and readers can acquire the write lock.
+ *
+ */
+public class LockMRPlusSW extends ReentrantLock implements Lock {
 
 	@Override
 	public void enterCriticalSection(final boolean readLockRequested) {

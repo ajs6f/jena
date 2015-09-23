@@ -29,18 +29,42 @@ import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Transactional;
 
 /**
- * A single or multiplex index of {@link Quad}s. Implementations may wish to override {@link #listGraphNodes()} with a
+ * A simplex or multiplex index of {@link Quad}s. Implementations may wish to override {@link #listGraphNodes()} with a
  * more efficient implementation.
  *
  */
 public interface Index extends Transactional {
 
+	/**
+	 * Search the index using a pattern of slots. {@link Node#ANY} or <code>null</code> will work as a wildcard.
+	 *
+	 * @param g the graph node of the pattern
+	 * @param s the subject node of the pattern
+	 * @param p the predicate node of the pattern
+	 * @param o the object node of the pattern
+	 * @return an {@link Iterator} of matched quads
+	 */
 	Iterator<Quad> find(Node g, Node s, Node p, Node o);
 
+	/**
+	 * Add a {@link Quad} to the index
+	 *
+	 * @param q the quad to add
+	 */
 	void add(Quad q);
 
+	/**
+	 * Remove a {@link Quad} from the index
+	 *
+	 * @param q the quad to remove
+	 */
 	void delete(Quad q);
 
+	/**
+	 * Discover the graphs named in the index
+	 *
+	 * @return an {@link Iterator} of graph names used in this index
+	 */
 	default Iterator<Node> listGraphNodes() {
 		return distinct(map(find(ANY, ANY, ANY, ANY), Quad::getGraph));
 	}

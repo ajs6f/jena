@@ -110,5 +110,4 @@ public class FourTupleMap extends PMap<Node, ThreeTupleMap, FourTupleMap> {
 			return descend(e -> f.apply(e.getKey(), e.getValue()));
 		}
 	}
-
 }

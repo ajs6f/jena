@@ -32,6 +32,10 @@ import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.mem.IndexForm.Slot;
 
+/**
+ * A six-way {@link Index} using all of the available forms in {@link IndexForm}.
+ *
+ */
 public class HexIndex extends PMapBasedIndex {
 
 	public HexIndex() {
@@ -68,7 +72,7 @@ public class HexIndex extends PMapBasedIndex {
 
 	@Override
 	public Iterator<Node> listGraphNodes() {
-		return indexBlock.get(GSPO).local.get().entrySet().stream().map(Map.Entry::getKey).iterator();
+		return indexBlock.get(GSPO).local().get().entrySet().stream().map(Map.Entry::getKey).iterator();
 	}
 
 	@Override
@@ -78,11 +82,11 @@ public class HexIndex extends PMapBasedIndex {
 
 	@Override
 	public void end() {
-		indexBlock.values().forEach(PMapBasedIndex::end);
+		indexBlock.values().forEach(Index::end);
 	}
 
 	@Override
 	public void commit() {
-		indexBlock.values().forEach(PMapBasedIndex::commit);
+		indexBlock.values().forEach(Index::commit);
 	}
 }
