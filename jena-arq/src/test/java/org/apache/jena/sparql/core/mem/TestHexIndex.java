@@ -45,7 +45,7 @@ public class TestHexIndex extends IndexTest {
 		final int nodesToTry = 50;
 		final HexIndex index = new HexIndex();
 		final Set<Node> graphNodes = new HashSet<>();
-		index.begin();
+		index.begin(null);
 		for (int i = 0; i < nodesToTry; i++) {
 			final Node node = createBlankNode();
 			index.add(Quad.create(node, node, node, node));
@@ -59,7 +59,7 @@ public class TestHexIndex extends IndexTest {
 	public void checkConcreteQueries() {
 		queryPatterns().filter(p -> !allWildcardQuery.equals(p)).map(TestHexIndex::exampleFrom).forEach(testQuery -> {
 			final HexIndex index = new HexIndex();
-			index.begin();
+			index.begin(null);
 			// add our sample quad
 			index.add(q);
 			// add a noise quad from which our sample should be distinguished
@@ -68,7 +68,7 @@ public class TestHexIndex extends IndexTest {
 			index.add(noiseQuad);
 			index.commit();
 
-			index.begin();
+			index.begin(null);
 			Iterator<Quad> contents = index.find(testQuery.getGraph(), testQuery.getSubject(), testQuery.getPredicate(),
 					testQuery.getObject());
 			assertTrue(contents.hasNext());

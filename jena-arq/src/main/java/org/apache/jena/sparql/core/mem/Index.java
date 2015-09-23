@@ -25,6 +25,7 @@ import static org.apache.jena.graph.Node.ANY;
 import java.util.Iterator;
 
 import org.apache.jena.graph.Node;
+import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Transactional;
 
@@ -68,4 +69,19 @@ public interface Index extends Transactional {
 	default Iterator<Node> listGraphNodes() {
 		return distinct(map(find(ANY, ANY, ANY, ANY), Quad::getGraph));
 	}
+
+	@Override
+	default void begin(final ReadWrite rw) {
+		begin();
+	}
+
+	@Override
+	default void abort() {
+		end();
+	}
+
+	/**
+	 * Begin a transaction.
+	 */
+	void begin();
 }

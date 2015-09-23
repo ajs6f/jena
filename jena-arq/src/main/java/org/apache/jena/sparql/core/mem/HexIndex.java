@@ -18,6 +18,7 @@
 
 package org.apache.jena.sparql.core.mem;
 
+import static java.lang.ThreadLocal.withInitial;
 import static java.util.EnumSet.noneOf;
 import static java.util.stream.Collectors.toMap;
 import static org.apache.jena.sparql.core.mem.IndexForm.*;
@@ -36,11 +37,9 @@ import org.apache.jena.sparql.core.mem.IndexForm.Slot;
  * A six-way {@link Index} using all of the available forms in {@link IndexForm}.
  *
  */
-public class HexIndex extends PMapBasedIndex {
+public class HexIndex implements Index {
 
-	public HexIndex() {
-		super("HexIndex");
-	}
+	private final ThreadLocal<Boolean> isInTransaction = withInitial(() -> false);
 
 	private final Map<IndexForm, PMapBasedIndex> indexBlock = new EnumMap<IndexForm, PMapBasedIndex>(
 			indexForms().collect(toMap(x -> x, IndexForm::get)));
@@ -77,16 +76,24 @@ public class HexIndex extends PMapBasedIndex {
 
 	@Override
 	public void begin() {
-		indexBlock.values().forEach(PMapBasedIndex::begin);
+		isInTransaction.set(true);
+		indexBlock.values().forEach(Index::begin);
 	}
 
 	@Override
 	public void end() {
 		indexBlock.values().forEach(Index::end);
+		isInTransaction.set(false);
 	}
 
 	@Override
 	public void commit() {
 		indexBlock.values().forEach(Index::commit);
+		isInTransaction.set(false);
+	}
+
+	@Override
+	public boolean isInTransaction() {
+		return isInTransaction.get();
 	}
 }

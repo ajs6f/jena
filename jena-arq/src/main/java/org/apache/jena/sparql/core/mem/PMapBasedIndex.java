@@ -69,11 +69,6 @@ public abstract class PMapBasedIndex implements Index {
 
 	private final ThreadLocal<Boolean> isInTransaction = withInitial(() -> false);
 
-	private final void isInTransaction(final boolean is) {
-		isInTransaction.set(is);
-	}
-
-
 	protected ThreadLocal<FourTupleMap> local() {
 		return local;
 	}
@@ -83,8 +78,9 @@ public abstract class PMapBasedIndex implements Index {
 		begin();
 	}
 
+	@Override
 	public void begin() {
-		isInTransaction(true);
+		isInTransaction.set(true);
 	}
 
 	@Override
@@ -101,7 +97,7 @@ public abstract class PMapBasedIndex implements Index {
 	public void end() {
 		debug("Abandoning transactional reference.");
 		local.remove();
-		isInTransaction(false);
+		isInTransaction.set(false);
 	}
 
 	@Override
