@@ -19,8 +19,7 @@
 package org.apache.jena.sparql.core.mem;
 
 import static java.lang.ThreadLocal.withInitial;
-import static java.util.Spliterators.spliteratorUnknownSize;
-import static java.util.stream.StreamSupport.stream;
+import static org.apache.jena.atlas.iterator.Iter.iter;
 import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.query.ReadWrite.READ;
 import static org.apache.jena.query.ReadWrite.WRITE;
@@ -34,7 +33,6 @@ import java.util.Set;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
@@ -49,7 +47,7 @@ import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Transactional;
 
 /**
- * A {@link DatasetGraph} backed by an {@link Index}. By default, this is a {@link HexIndex} designed for high-speed
+ * A {@link DatasetGraph} backed by an {@link QuadTable}. By default, this is a {@link HexIndex} designed for high-speed
  * in-memory operation.
  *
  */
@@ -67,9 +65,9 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 
 	private final ThreadLocal<ReadWrite> transactionType = withInitial(() -> null);
 
-	private final Index index;
+	private final QuadTable index;
 
-	private Index index() {
+	private QuadTable index() {
 		return index;
 	}
 
@@ -82,7 +80,7 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 		this(new HexIndex());
 	}
 
-	public DatasetGraphInMemory(final Index i) {
+	public DatasetGraphInMemory(final QuadTable i) {
 		this.index = i;
 	}
 
@@ -161,11 +159,9 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 	}
 
 	private Iterator<Quad> finder(final Node g, final Node s, final Node p, final Node o) {
-		if (isUnionGraph(g)) {
-			// implement union graph functionality
-			final Stream<Quad> quads = stream(spliteratorUnknownSize(index().find(ANY, s, p, o), 0), false);
-			final Set<Triple> seenTriples = new HashSet<>();
-			return quads.filter(q -> !q.isDefaultGraph() && seenTriples.add(q.asTriple())).iterator();
+		if (isUnionGraph(g)) { // union graph is the merge of named graphs
+			final Set<Triple> seen = new HashSet<>();
+			return iter(index().find(ANY, s, p, o)).filter(q -> !q.isDefaultGraph() && seen.add(q.asTriple()));
 		}
 		return index().find(g, s, p, o);
 	};

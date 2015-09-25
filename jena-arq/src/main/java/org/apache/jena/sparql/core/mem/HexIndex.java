@@ -34,10 +34,10 @@ import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.mem.IndexForm.Slot;
 
 /**
- * A six-way {@link Index} using all of the available forms in {@link IndexForm}.
+ * A six-way {@link QuadTable} using all of the available forms in {@link IndexForm}.
  *
  */
-public class HexIndex implements Index {
+public class HexIndex implements QuadTable {
 
 	private final ThreadLocal<Boolean> isInTransaction = withInitial(() -> false);
 
@@ -77,18 +77,18 @@ public class HexIndex implements Index {
 	@Override
 	public void begin() {
 		isInTransaction.set(true);
-		indexBlock.values().forEach(Index::begin);
+		indexBlock.values().forEach(QuadTable::begin);
 	}
 
 	@Override
 	public void end() {
-		indexBlock.values().forEach(Index::end);
+		indexBlock.values().forEach(QuadTable::end);
 		isInTransaction.set(false);
 	}
 
 	@Override
 	public void commit() {
-		indexBlock.values().forEach(Index::commit);
+		indexBlock.values().forEach(QuadTable::commit);
 		isInTransaction.set(false);
 	}
 

@@ -38,10 +38,10 @@ import org.apache.jena.sparql.core.mem.FourTupleMap.TwoTupleMap;
 import org.slf4j.Logger;
 
 /**
- * An implementation of {@link Index} based on the use of nested {@link PMap}s. Intended for high-speed in-memory use.
+ * An implementation of {@link QuadTable} based on the use of nested {@link PMap}s. Intended for high-speed in-memory use.
  *
  */
-public abstract class PMapBasedIndex implements Index {
+public abstract class PMapBasedIndex implements QuadTable {
 
 	private final String name;
 

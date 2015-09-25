@@ -34,7 +34,7 @@ import org.apache.jena.sparql.core.Transactional;
  * more efficient implementation.
  *
  */
-public interface Index extends Transactional {
+public interface QuadTable extends Transactional {
 
 	/**
 	 * Search the index using a pattern of slots. {@link Node#ANY} or <code>null</code> will work as a wildcard.
