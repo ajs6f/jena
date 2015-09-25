@@ -23,7 +23,6 @@ import static org.apache.jena.atlas.iterator.Iter.iter;
 import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.query.ReadWrite.READ;
 import static org.apache.jena.query.ReadWrite.WRITE;
-import static org.apache.jena.sparql.core.GraphView.*;
 import static org.apache.jena.sparql.core.Quad.defaultGraphNodeGenerated;
 import static org.apache.jena.sparql.core.Quad.isUnionGraph;
 
@@ -43,6 +42,7 @@ import org.apache.jena.shared.LockMRPlusSW;
 import org.apache.jena.sparql.JenaTransactionException;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.core.DatasetGraphQuad;
+import org.apache.jena.sparql.core.DatasetPrefixStorage;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Transactional;
 
@@ -182,7 +182,7 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 
 	@Override
 	public Graph getDefaultGraph() {
-		return createDefaultGraph(this);
+		return new GraphInMemory(this, null);
 	}
 
 	@Override
@@ -195,7 +195,7 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 
 	@Override
 	public Graph getGraph(final Node graphNode) {
-		return isUnionGraph(graphNode) ? createUnionGraph(this) : createNamedGraph(this, graphNode);
+		return new GraphInMemory(this, graphNode);
 	}
 
 	private Consumer<Graph> addGraph(final Node name) {
@@ -203,6 +203,8 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 	}
 
 	private final Consumer<Graph> removeGraph = g -> g.find(ANY, ANY, ANY).forEachRemaining(g::delete);
+
+	private DatasetPrefixStorage prefixes = new DatasetPrefixStorageInMemory();
 
 	@Override
 	public void addGraph(final Node graphName, final Graph graph) {
@@ -231,5 +233,9 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 			}
 		} else if (transactionType().equals(WRITE)) mutator.accept(payload);
 		else throw new JenaTransactionException("Tried to write inside a READ transaction!");
+	}
+
+	public DatasetPrefixStorage getPrefixes() {
+		return prefixes;
 	}
 }

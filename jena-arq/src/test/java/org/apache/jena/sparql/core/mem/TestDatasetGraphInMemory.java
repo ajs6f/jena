@@ -22,15 +22,21 @@ import static com.jayway.awaitility.Awaitility.await;
 import static com.jayway.awaitility.Duration.ONE_HUNDRED_MILLISECONDS;
 import static com.jayway.awaitility.Duration.TEN_SECONDS;
 import static org.apache.jena.graph.NodeFactory.createBlankNode;
+import static org.apache.jena.graph.NodeFactory.createURI;
 import static org.apache.jena.query.ReadWrite.READ;
 import static org.apache.jena.query.ReadWrite.WRITE;
+import static org.apache.jena.sparql.graph.GraphFactory.createGraphMem;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
+import org.apache.jena.graph.Node;
 import org.apache.jena.query.Dataset;
 import org.apache.jena.query.DatasetFactory;
+import org.apache.jena.rdf.model.Model;
 import org.apache.jena.sparql.core.AbstractDatasetGraphTests;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.core.Quad;
@@ -187,6 +193,25 @@ public class TestDatasetGraphInMemory {
 	}
 
 	public static class TestDatasetGraphInMemoryBasic extends AbstractDatasetGraphTests {
+
+		@Test
+		public void prefixesAreManaged() {
+			final Node graphName = createURI("http://example/g");
+			final DatasetGraph dsg = emptyDataset();
+			dsg.addGraph(graphName, createGraphMem());
+			final Dataset dataset = DatasetFactory.create(dsg);
+			Model model = dataset.getNamedModel(graphName.getURI());
+			final String testPrefix = "example";
+			final String testURI = "http://example/";
+			model.setNsPrefix(testPrefix, testURI);
+			assertEquals(testURI, model.getNsPrefixURI(testPrefix));
+			model.close();
+			model = dataset.getNamedModel(graphName.getURI());
+			final String nsURI = dataset.getNamedModel(graphName.getURI()).getNsPrefixURI(testPrefix);
+			assertNotNull(nsURI);
+			assertEquals(testURI, nsURI);
+		}
+
 		@Override
 		protected DatasetGraph emptyDataset() {
 			return new DatasetGraphInMemory();
