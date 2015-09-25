@@ -53,6 +53,8 @@ import org.apache.jena.sparql.core.Transactional;
  */
 public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactional {
 
+	private final DatasetPrefixStorage prefixes = new DatasetPrefixStorageInMemory();
+
 	private final Lock writeLock = new LockMRPlusSW();
 
 	/**
@@ -205,8 +207,6 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 	}
 
 	private final Consumer<Graph> removeGraph = g -> g.find(ANY, ANY, ANY).forEachRemaining(g::delete);
-
-	private final DatasetPrefixStorage prefixes = new DatasetPrefixStorageInMemory();
 
 	@Override
 	public void addGraph(final Node graphName, final Graph graph) {

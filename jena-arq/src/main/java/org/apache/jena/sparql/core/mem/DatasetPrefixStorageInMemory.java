@@ -2,9 +2,9 @@ package org.apache.jena.sparql.core.mem;
 
 import static org.apache.jena.sparql.core.Quad.defaultGraphIRI;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.jena.shared.PrefixMapping;
 import org.apache.jena.shared.impl.PrefixMappingImpl;
@@ -12,7 +12,7 @@ import org.apache.jena.sparql.core.DatasetPrefixStorage;
 
 public class DatasetPrefixStorageInMemory implements DatasetPrefixStorage {
 
-	private Map<String, PrefixMapping> prefixMappings = new HashMap<>();
+	private Map<String, PrefixMapping> prefixMappings = new ConcurrentHashMap<>();
 
 	@Override
 	public void close() {
