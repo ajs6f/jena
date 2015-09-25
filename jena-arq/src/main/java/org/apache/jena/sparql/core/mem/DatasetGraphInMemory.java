@@ -38,9 +38,9 @@ import org.apache.jena.graph.Graph;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.ReadWrite;
-import org.apache.jena.shared.JenaException;
 import org.apache.jena.shared.Lock;
 import org.apache.jena.shared.LockMRPlusSW;
+import org.apache.jena.sparql.JenaTransactionException;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.core.DatasetGraphQuad;
 import org.apache.jena.sparql.core.Quad;
@@ -86,7 +86,7 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 
 	@Override
 	public void begin(final ReadWrite readWrite) {
-		if (isInTransaction()) throw new JenaException("Transactions cannot be nested!");
+		if (isInTransaction()) throw new JenaTransactionException("Transactions cannot be nested!");
 		transactionType.set(readWrite);
 		isInTransaction.set(true);
 		getLock().enterCriticalSection(readWrite.equals(READ)); // get the dataset write lock, if needed.
@@ -230,6 +230,6 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 				end();
 			}
 		} else if (transactionType().equals(WRITE)) mutator.accept(payload);
-		else throw new JenaException("Tried to write inside a READ transaction!");
+		else throw new JenaTransactionException("Tried to write inside a READ transaction!");
 	}
 }
