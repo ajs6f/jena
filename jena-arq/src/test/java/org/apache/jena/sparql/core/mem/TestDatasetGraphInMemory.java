@@ -45,7 +45,9 @@ import org.apache.jena.sparql.core.TestDatasetGraphWithLock;
 import org.apache.jena.sparql.core.mem.TestDatasetGraphInMemory.TestDatasetGraphInMemoryBasic;
 import org.apache.jena.sparql.core.mem.TestDatasetGraphInMemory.TestDatasetGraphInMemoryLock;
 import org.apache.jena.sparql.core.mem.TestDatasetGraphInMemory.TestDatasetGraphInMemoryThreading;
+import org.apache.jena.sparql.core.mem.TestDatasetGraphInMemory.TestDatasetGraphInMemoryTransactions;
 import org.apache.jena.sparql.core.mem.TestDatasetGraphInMemory.TestDatasetGraphInMemoryViews;
+import org.apache.jena.sparql.transaction.AbstractTestTransaction;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -55,7 +57,8 @@ import org.slf4j.Logger;
 
 @RunWith(Suite.class)
 @SuiteClasses({ TestDatasetGraphInMemoryBasic.class, TestDatasetGraphInMemoryViews.class,
-		TestDatasetGraphInMemoryLock.class, TestDatasetGraphInMemoryThreading.class })
+		TestDatasetGraphInMemoryLock.class, TestDatasetGraphInMemoryThreading.class,
+		TestDatasetGraphInMemoryTransactions.class })
 public class TestDatasetGraphInMemory {
 
 	public static class TestDatasetGraphInMemoryThreading extends Assert {
@@ -230,6 +233,14 @@ public class TestDatasetGraphInMemory {
 		@Override
 		protected DatasetGraph createBaseDSG() {
 			return new DatasetGraphInMemory();
+		}
+	}
+
+	public static class TestDatasetGraphInMemoryTransactions extends AbstractTestTransaction {
+
+		@Override
+		protected Dataset create() {
+			return DatasetFactory.create(new DatasetGraphInMemory());
 		}
 	}
 }

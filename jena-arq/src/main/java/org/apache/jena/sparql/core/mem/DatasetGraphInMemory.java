@@ -100,6 +100,7 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 
 	@Override
 	public void commit() {
+		if (!isInTransaction()) throw new JenaTransactionException("Tried to commit outside a transaction!");
 		commitLock.writeLock().lock();
 		try {
 			index().commit();
@@ -111,6 +112,7 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 
 	@Override
 	public void abort() {
+		if (!isInTransaction()) throw new JenaTransactionException("Tried to abort outside a transaction!");
 		end();
 	}
 
@@ -204,7 +206,7 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 
 	private final Consumer<Graph> removeGraph = g -> g.find(ANY, ANY, ANY).forEachRemaining(g::delete);
 
-	private DatasetPrefixStorage prefixes = new DatasetPrefixStorageInMemory();
+	private final DatasetPrefixStorage prefixes = new DatasetPrefixStorageInMemory();
 
 	@Override
 	public void addGraph(final Node graphName, final Graph graph) {
