@@ -24,6 +24,8 @@ import static org.apache.jena.ext.com.google.common.collect.ImmutableSet.of;
 import static org.apache.jena.ext.com.google.common.collect.Sets.powerSet;
 import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.graph.NodeFactory.createURI;
+import static org.apache.jena.query.ReadWrite.READ;
+import static org.apache.jena.query.ReadWrite.WRITE;
 
 import java.util.Set;
 import java.util.stream.Stream;
@@ -47,7 +49,7 @@ public abstract class QuadTableTest extends Assert {
 	public void addAndRemoveSomeQuads(final QuadTable index) {
 
 		// simple add-and-delete
-		index.begin();
+		index.begin(WRITE);
 		index.add(q);
 		Set<Quad> contents = index.find(ANY, ANY, ANY, ANY).collect(toSet());
 		assertEquals(ImmutableSet.of(q), contents);
@@ -57,23 +59,23 @@ public abstract class QuadTableTest extends Assert {
 		index.end();
 
 		// add, abort, then check to see that nothing was persisted
-		index.begin();
+		index.begin(WRITE);
 		index.add(q);
 		contents = index.find(ANY, ANY, ANY, ANY).collect(toSet());
 		assertEquals(ImmutableSet.of(q), contents);
 		index.end();
-		index.begin();
+		index.begin(READ);
 		contents = index.find(ANY, ANY, ANY, ANY).collect(toSet());
 		assertTrue(contents.isEmpty());
 		index.end();
 
 		// add, commit, and check to see that persistence occurred
-		index.begin();
+		index.begin(WRITE);
 		index.add(q);
 		contents = index.find(ANY, ANY, ANY, ANY).collect(toSet());
 		assertEquals(ImmutableSet.of(q), contents);
 		index.commit();
-		index.begin();
+		index.begin(READ);
 		contents = index.find(ANY, ANY, ANY, ANY).collect(toSet());
 		assertEquals(ImmutableSet.of(q), contents);
 		index.end();

@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 import org.apache.jena.atlas.lib.PersistentSet;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
+import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.core.mem.FourTupleMap.ThreeTupleMap;
 import org.apache.jena.sparql.core.mem.FourTupleMap.TwoTupleMap;
 import org.slf4j.Logger;
@@ -143,8 +144,7 @@ public abstract class PMapTripleTable implements TripleTable {
 	}
 
 	@Override
-	public void begin() {
+	public void begin(final ReadWrite rw) {
 		isInTransaction.set(true);
 	}
-
 }

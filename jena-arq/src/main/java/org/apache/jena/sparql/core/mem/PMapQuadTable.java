@@ -75,11 +75,6 @@ public abstract class PMapQuadTable implements QuadTable {
 
 	@Override
 	public void begin(final ReadWrite rw) {
-		begin();
-	}
-
-	@Override
-	public void begin() {
 		isInTransaction.set(true);
 	}
 

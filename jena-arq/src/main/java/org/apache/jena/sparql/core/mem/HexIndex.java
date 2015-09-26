@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
+import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.core.Quad;
 
 /**
@@ -76,9 +77,9 @@ public class HexIndex implements QuadTable {
 	}
 
 	@Override
-	public void begin() {
+	public void begin(final ReadWrite rw) {
 		isInTransaction.set(true);
-		indexBlock.values().forEach(QuadTable::begin);
+		indexBlock.values().forEach(table -> table.begin(rw));
 	}
 
 	@Override

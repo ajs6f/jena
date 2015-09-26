@@ -42,11 +42,6 @@ public class TriIndex implements TripleTable {
 	private final ThreadLocal<Boolean> isInTransaction = withInitial(() -> false);
 
 	@Override
-	public void begin(final ReadWrite readWrite) {
-		begin();
-	}
-
-	@Override
 	public void commit() {
 		indexBlock.values().forEach(TripleTable::commit);
 		end();
@@ -94,9 +89,9 @@ public class TriIndex implements TripleTable {
 	}
 
 	@Override
-	public void begin() {
+	public void begin(final ReadWrite rw) {
 		isInTransaction.set(true);
-		indexBlock.values().forEach(TripleTable::begin);
+		indexBlock.values().forEach(table -> table.begin(rw));
 	}
 
 }
