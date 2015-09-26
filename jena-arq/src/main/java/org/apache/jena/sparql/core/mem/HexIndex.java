@@ -20,6 +20,7 @@ package org.apache.jena.sparql.core.mem;
 
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.EnumSet.noneOf;
+import static java.util.Objects.nonNull;
 import static java.util.stream.Collectors.toMap;
 import static org.apache.jena.sparql.core.mem.QuadIndexForm.*;
 import static org.apache.jena.sparql.core.mem.Slot.*;
@@ -56,7 +57,7 @@ public class HexIndex implements QuadTable {
 	}
 
 	private static boolean isConcrete(final Node n) {
-		return n != null && n.isConcrete();
+		return nonNull(n) && n.isConcrete();
 	}
 
 	@Override
