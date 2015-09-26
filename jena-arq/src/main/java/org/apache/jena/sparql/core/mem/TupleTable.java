@@ -45,4 +45,6 @@ public interface TupleTable<TupleType> extends Transactional {
 	default void abort() {
 		end();
 	}
+
+	void clear();
 }

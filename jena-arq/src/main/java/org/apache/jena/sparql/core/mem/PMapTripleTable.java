@@ -50,13 +50,8 @@ public abstract class PMapTripleTable extends PMapTupleTable<ThreeTupleMap, Trip
 		return ThreeTupleMap.empty();
 	}
 
-	public PMapTripleTable(final String indexName) {
-		super(indexName);
-	}
-
-	@Override
-	public void clear() {
-		local().set(initial());
+	public PMapTripleTable(final String tableName) {
+		super(tableName);
 	}
 
 	/**

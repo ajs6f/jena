@@ -35,6 +35,7 @@ public interface TripleTable extends TupleTable<Triple> {
 	 */
 	Stream<Triple> find(Node s, Node p, Node o);
 
+	@Override
 	default void clear() {
 		find(null, null, null).forEach(this::delete);
 	}

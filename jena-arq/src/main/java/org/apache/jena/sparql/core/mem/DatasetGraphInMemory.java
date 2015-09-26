@@ -73,7 +73,7 @@ public class DatasetGraphInMemory extends DatasetGraphTriplesQuads implements Tr
 
 	private final TripleTable dftGraph;
 
-	private TripleTable dftGraphIndex() {
+	private TripleTable triplesIndex() {
 		return dftGraph;
 	}
 
@@ -111,7 +111,7 @@ public class DatasetGraphInMemory extends DatasetGraphTriplesQuads implements Tr
 		commitLock.writeLock().lock();
 		try {
 			quadsIndex().commit();
-			dftGraphIndex().commit();
+			triplesIndex().commit();
 		} finally {
 			commitLock.writeLock().unlock();
 		}
@@ -127,7 +127,7 @@ public class DatasetGraphInMemory extends DatasetGraphTriplesQuads implements Tr
 	@Override
 	public void end() {
 		quadsIndex().end();
-		dftGraphIndex().end();
+		triplesIndex().end();
 		isInTransaction.set(false);
 		transactionType.set(null);
 		getLock().leaveCriticalSection();
@@ -162,19 +162,20 @@ public class DatasetGraphInMemory extends DatasetGraphTriplesQuads implements Tr
 	private Iterator<Quad> quadsFinder(final Node g, final Node s, final Node p, final Node o) {
 		if (isUnionGraph(g)) { // union graph is the merge of named graphs
 			final Set<Triple> seen = new HashSet<>();
-			return quadsIndex().find(ANY, s, p, o).filter(q -> !q.isDefaultGraph() && seen.add(q.asTriple())).iterator();
+			return quadsIndex().find(ANY, s, p, o).filter(q -> !q.isDefaultGraph() && seen.add(q.asTriple()))
+					.iterator();
 		}
 		return quadsIndex().find(g, s, p, o).iterator();
 	};
 
 	private Iterator<Quad> triplesFinder(final Node s, final Node p, final Node o) {
-		return triples2quadsDftGraph(dftGraphIndex().find(s, p, o).iterator());
+		return triples2quadsDftGraph(triplesIndex().find(s, p, o).iterator());
 	};
 
 	@Override
 	public void setDefaultGraph(final Graph g) {
 		mutate(graph -> {
-			dftGraphIndex().clear();
+			triplesIndex().clear();
 			graph.find(ANY, ANY, ANY)
 					.forEachRemaining(t -> addToDftGraph(t.getSubject(), t.getPredicate(), t.getObject()));
 		} , g);
@@ -230,8 +231,16 @@ public class DatasetGraphInMemory extends DatasetGraphTriplesQuads implements Tr
 	}
 
 	@Override
+	public void clear() {
+		mutate(x -> {
+			triplesIndex().clear();
+			quadsIndex().clear();
+		} , null);
+	}
+
+	@Override
 	protected void addToDftGraph(final Node s, final Node p, final Node o) {
-		mutate(dftGraphIndex()::add, Triple.create(s, p, o));
+		mutate(triplesIndex()::add, Triple.create(s, p, o));
 	}
 
 	@Override
@@ -241,7 +250,7 @@ public class DatasetGraphInMemory extends DatasetGraphTriplesQuads implements Tr
 
 	@Override
 	protected void deleteFromDftGraph(final Node s, final Node p, final Node o) {
-		mutate(dftGraphIndex()::delete, Triple.create(s, p, o));
+		mutate(triplesIndex()::delete, Triple.create(s, p, o));
 	}
 
 	@Override

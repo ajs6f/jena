@@ -34,7 +34,9 @@ import org.slf4j.Logger;
 public abstract class PMapTupleTable<TupleMapType, TupleType> implements TupleTable<TupleType> {
 
 	/**
-	 * @return a value to which to initialize the master table data
+	 * This method should always return the same value.
+	 *
+	 * @return a value to which to initialize the master table data.
 	 */
 	protected abstract TupleMapType initial();
 
@@ -59,19 +61,19 @@ public abstract class PMapTupleTable<TupleMapType, TupleType> implements TupleTa
 
 	private final ThreadLocal<Boolean> isInTransaction = withInitial(() -> false);
 
-	private final String name;
+	private final String tableName;
 
 	public PMapTupleTable(final String n) {
-		this.name = n;
+		this.tableName = n;
 	}
 
 	protected abstract Logger log();
 
 	/**
-	 * Logs to DEBUG prepending the index name in order to distinguish amongst different indexes
+	 * Logs to DEBUG prepending the table name in order to distinguish amongst different indexes
 	 */
 	protected void debug(final String msg, final Object... values) {
-		log().debug(name + ": " + msg, values);
+		log().debug(tableName + ": " + msg, values);
 	}
 
 	@Override
@@ -91,6 +93,11 @@ public abstract class PMapTupleTable<TupleMapType, TupleType> implements TupleTa
 		debug("Swapping transactional reference in for shared reference");
 		master().set(local.get());
 		end();
+	}
+
+	@Override
+	public void clear() {
+		local().set(initial());
 	}
 
 	@Override

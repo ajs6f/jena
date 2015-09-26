@@ -39,8 +39,8 @@ import org.slf4j.Logger;
  */
 public abstract class PMapQuadTable extends PMapTupleTable<FourTupleMap, Quad>implements QuadTable {
 
-	public PMapQuadTable(final String indexName) {
-		super(indexName);
+	public PMapQuadTable(final String tableName) {
+		super(tableName);
 	}
 
 	private static final Logger log = getLogger(PMapQuadTable.class);
@@ -50,6 +50,7 @@ public abstract class PMapQuadTable extends PMapTupleTable<FourTupleMap, Quad>im
 		return log;
 	}
 
+	@Override
 	protected FourTupleMap initial() {
 		return FourTupleMap.empty();
 	}

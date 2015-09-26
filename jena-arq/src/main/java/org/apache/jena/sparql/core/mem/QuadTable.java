@@ -52,4 +52,9 @@ public interface QuadTable extends TupleTable<Quad> {
 	default Iterator<Node> listGraphNodes() {
 		return find(ANY, ANY, ANY, ANY).map(Quad::getGraph).distinct().iterator();
 	}
+
+	@Override
+	default void clear() {
+		find(null, null, null, null).forEach(this::delete);
+	}
 }

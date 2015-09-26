@@ -73,7 +73,8 @@ public class HexIndex implements QuadTable {
 	@Override
 	public Iterator<Node> listGraphNodes() {
 		// TODO square this cast away
-		return ((PMapQuadTable) indexBlock.get(GSPO)).local().get().entrySet().stream().map(Map.Entry::getKey).iterator();
+		return ((PMapQuadTable) indexBlock.get(GSPO)).local().get().entrySet().stream().map(Map.Entry::getKey)
+				.iterator();
 	}
 
 	@Override
@@ -97,5 +98,10 @@ public class HexIndex implements QuadTable {
 	@Override
 	public boolean isInTransaction() {
 		return isInTransaction.get();
+	}
+
+	@Override
+	public void clear() {
+		indexBlock.values().forEach(QuadTable::clear);
 	}
 }
