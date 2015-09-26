@@ -22,8 +22,6 @@ import static java.util.stream.Stream.empty;
 import static org.apache.jena.sparql.core.Quad.create;
 import static org.slf4j.LoggerFactory.getLogger;
 
-import java.util.Iterator;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
 import org.apache.jena.atlas.lib.PMap;
@@ -39,10 +37,10 @@ import org.slf4j.Logger;
  * use.
  *
  */
-public abstract class PMapQuadTable extends PMapTupleTable<FourTupleMap, Quad> implements QuadTable {
+public abstract class PMapQuadTable extends PMapTupleTable<FourTupleMap, Quad>implements QuadTable {
 
-	public PMapQuadTable(final String n) {
-		super(n);
+	public PMapQuadTable(final String indexName) {
+		super(indexName);
 	}
 
 	private static final Logger log = getLogger(PMapQuadTable.class);
@@ -52,56 +50,52 @@ public abstract class PMapQuadTable extends PMapTupleTable<FourTupleMap, Quad> i
 		return log;
 	}
 
-	private final AtomicReference<FourTupleMap> master = new AtomicReference<>(FourTupleMap.empty());
-
-	@Override
-	protected AtomicReference<FourTupleMap> master() {
-		return master;
+	protected FourTupleMap initial() {
+		return FourTupleMap.empty();
 	}
 
 	/**
 	 * We descend through the nested {@link PMap}s building up {@link Stream}s of partial tuples from which we develop a
-	 * <code>Stream</code> of full tuples from which we get our {@link Iterator}. Use {@link Node#ANY} or
-	 * <code>null</code> for a wildcard.
+	 * {@link Stream} of full tuples which is our result. Use {@link Node#ANY} or <code>null</code> for a wildcard.
 	 *
 	 * @param first the value in the first slot of the tuple
-	 * @param second the value in the first slot of the tuple
-	 * @param third the value in the first slot of the tuple
-	 * @param fourth the value in the first slot of the tuple
-	 * @return an <code>Iterator</code> of tuples matching the pattern
+	 * @param second the value in the second slot of the tuple
+	 * @param third the value in the third slot of the tuple
+	 * @param fourth the value in the fourth slot of the tuple
+	 * @return a <code>Stream</code> of tuples matching the pattern
 	 */
 	protected Stream<Quad> _find(final Node first, final Node second, final Node third, final Node fourth) {
 		debug("Querying on four-tuple pattern: {} {} {} {} .", first, second, third, fourth);
 		final FourTupleMap fourTuples = local().get();
 		if (first != null && first.isConcrete()) {
-			log.debug("Using a specific first slot value.");
+			debug("Using a specific first slot value.");
 			if (!fourTuples.containsKey(first)) return empty();
 			final ThreeTupleMap threeTuples = fourTuples.get(first);
 			if (second != null && second.isConcrete()) {
-				log.debug("Using a specific second slot value.");
+				debug("Using a specific second slot value.");
 				if (!threeTuples.containsKey(second)) return empty();
 				final TwoTupleMap twoTuples = threeTuples.get(second);
 				if (third != null && third.isConcrete()) {
-					log.debug("Using a specific third slot value.");
+					debug("Using a specific third slot value.");
 					if (!twoTuples.containsKey(third)) return empty();
 					final PersistentSet<Node> oneTuples = twoTuples.get(third);
 					if (fourth != null && fourth.isConcrete()) {
-						log.debug("Using a specific fourth slot value.");
+						debug("Using a specific fourth slot value.");
 						if (!oneTuples.contains(fourth)) return empty();
 						return Stream.of(create(first, second, third, fourth));
 					}
-					log.debug("Using a wildcard fourth slot value.");
+					debug("Using a wildcard fourth slot value.");
 					return oneTuples.stream().map(slot4 -> create(first, second, third, slot4));
 				}
-				log.debug("Using wildcard third and fourth slot values.");
+				debug("Using wildcard third and fourth slot values.");
 				return twoTuples.descend(
 						(slot3, oneTuples) -> oneTuples.stream().map(slot4 -> create(first, second, slot3, slot4)));
 			}
-			log.debug("Using wildcard second, third and fourth slot values.");
+			debug("Using wildcard second, third and fourth slot values.");
 			return threeTuples.descend((slot2, twoTuples) -> twoTuples.descend(
 					(slot3, oneTuples) -> oneTuples.stream().map(slot4 -> create(first, slot2, slot3, slot4))));
 		}
-		log.debug("Using a wildcard for all slot values.");
+		debug("Using a wildcard for all slot values.");
 		return fourTuples.descend((slot1, threeTuples) -> threeTuples.descend((slot2, twoTuples) -> twoTuples
 				.descend((slot3, oneTuples) -> oneTuples.stream().map(slot4 -> create(slot1, slot2, slot3, slot4)))));
 	}

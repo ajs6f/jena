@@ -26,21 +26,33 @@ import org.apache.jena.query.ReadWrite;
 import org.slf4j.Logger;
 
 /**
- * A partial implementation of {@link TupleTable} that contains some state management.
+ * A partial implementation of {@link TupleTable} that contains some common state management.
  *
- * @param <TupleMapType> the type of the internal structure holding index data
+ * @param <TupleMapType> the type of the internal structure holding table data
  * @param <TupleType> the type of tuple in which a subclass of this class transacts
  */
 public abstract class PMapTupleTable<TupleMapType, TupleType> implements TupleTable<TupleType> {
 
 	/**
-	 * We use an {@link AtomicReference} to the internal structure that holds our index data to be able to swap
-	 * transactional versions of the index data with the shared version atomically.
+	 * @return a value to which to initialize the master table data
 	 */
-	protected abstract AtomicReference<TupleMapType> master();
+	protected abstract TupleMapType initial();
+
+	/**
+	 * We use an {@link AtomicReference} to the internal structure that holds our table data to be able to swap
+	 * transactional versions of the data with the shared version atomically.
+	 */
+	private final AtomicReference<TupleMapType> master = new AtomicReference<>(initial());
+
+	protected AtomicReference<TupleMapType> master() {
+		return master;
+	}
 
 	private final ThreadLocal<TupleMapType> local = withInitial(() -> master().get());
 
+	/**
+	 * @return a thread-local transactional reference to the internal table structure
+	 */
 	protected ThreadLocal<TupleMapType> local() {
 		return local;
 	}
@@ -55,6 +67,9 @@ public abstract class PMapTupleTable<TupleMapType, TupleType> implements TupleTa
 
 	protected abstract Logger log();
 
+	/**
+	 * Logs to DEBUG prepending the index name in order to distinguish amongst different indexes
+	 */
 	protected void debug(final String msg, final Object... values) {
 		log().debug(name + ": " + msg, values);
 	}

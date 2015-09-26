@@ -22,9 +22,9 @@ import static java.util.stream.Stream.empty;
 import static org.apache.jena.graph.Triple.create;
 import static org.slf4j.LoggerFactory.getLogger;
 
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
+import org.apache.jena.atlas.lib.PMap;
 import org.apache.jena.atlas.lib.PersistentSet;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
@@ -38,54 +38,61 @@ import org.slf4j.Logger;
  */
 public abstract class PMapTripleTable extends PMapTupleTable<ThreeTupleMap, Triple>implements TripleTable {
 
-	private final Logger log = getLogger(PMapTripleTable.class);
+	private final static Logger log = getLogger(PMapTripleTable.class);
 
 	@Override
 	protected Logger log() {
 		return log;
 	}
 
-	private final AtomicReference<ThreeTupleMap> master = new AtomicReference<>(ThreeTupleMap.empty());
-
 	@Override
-	protected AtomicReference<ThreeTupleMap> master() {
-		return master;
+	protected ThreeTupleMap initial() {
+		return ThreeTupleMap.empty();
 	}
 
-	public PMapTripleTable(final String n) {
-		super(n);
+	public PMapTripleTable(final String indexName) {
+		super(indexName);
 	}
 
 	@Override
 	public void clear() {
-		local().set(ThreeTupleMap.empty());
+		local().set(initial());
 	}
 
+	/**
+	 * We descend through the nested {@link PMap}s building up {@link Stream}s of partial tuples from which we develop a
+	 * {@link Stream} of full tuples which is our result. Use {@link Node#ANY} or <code>null</code> for a wildcard.
+	 *
+	 * @param first the value in the first slot of the tuple
+	 * @param second the value in the second slot of the tuple
+	 * @param third the value in the third slot of the tuple
+	 * @return a <code>Stream</code> of tuples matching the pattern
+	 */
 	public Stream<Triple> _find(final Node first, final Node second, final Node third) {
 		debug("Querying on three-tuple pattern: {} {} {} .", first, second, third);
 		final ThreeTupleMap threeTuples = local().get();
 
 		if (first != null && first.isConcrete()) {
-			log.debug("Using a specific first slot value.");
+			debug("Using a specific first slot value.");
 			if (!threeTuples.containsKey(first)) return empty();
 			final TwoTupleMap twoTuples = threeTuples.get(first);
 			if (second != null && second.isConcrete()) {
-				log.debug("Using a specific second slot value.");
+				debug("Using a specific second slot value.");
 				if (!twoTuples.containsKey(second)) return empty();
 				final PersistentSet<Node> oneTuples = twoTuples.get(second);
 				if (third != null && third.isConcrete()) {
-					log.debug("Using a specific third slot value.");
+					debug("Using a specific third slot value.");
 					if (!oneTuples.contains(third)) return empty();
 					return Stream.of(create(first, second, third));
 				}
-				log.debug("Using a wildcard third slot value.");
+				debug("Using a wildcard third slot value.");
 				return oneTuples.stream().map(slot3 -> create(first, second, slot3));
 			}
-			log.debug("Using wildcard second and third slot values.");
+			debug("Using wildcard second and third slot values.");
 			return twoTuples
 					.descend((slot2, oneTuples) -> oneTuples.stream().map(slot3 -> create(first, slot2, slot3)));
 		}
-		log.debug("Using a wildcard for all slot values.");
+		debug("Using a wildcard for all slot values.");
 		return threeTuples.descend((slot1, twoTuples) -> twoTuples
 				.descend((slot2, oneTuples) -> oneTuples.stream().map(slot3 -> create(slot1, slot2, slot3))));
 	}
@@ -116,7 +123,7 @@ public abstract class PMapTripleTable extends PMapTupleTable<ThreeTupleMap, Trip
 				if (oneTuples.contains(third)) {
 					oneTuples = oneTuples.minus(third);
 					twoTuples = twoTuples.minus(second).plus(second, oneTuples);
-					log.debug("Setting transactional index to new value.");
+					debug("Setting transactional index to new value.");
 					local().set(threeTuples.minus(first).plus(first, twoTuples));
 				}
 			}
