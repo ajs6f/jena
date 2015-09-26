@@ -18,7 +18,6 @@
 
 package org.apache.jena.sparql.core.mem;
 
-import static java.lang.ThreadLocal.withInitial;
 import static java.util.stream.Stream.empty;
 import static org.apache.jena.graph.Triple.create;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -29,61 +28,42 @@ import java.util.stream.Stream;
 import org.apache.jena.atlas.lib.PersistentSet;
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
-import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.core.mem.FourTupleMap.ThreeTupleMap;
 import org.apache.jena.sparql.core.mem.FourTupleMap.TwoTupleMap;
 import org.slf4j.Logger;
 
-public abstract class PMapTripleTable implements TripleTable {
+/**
+ * A {@link TripleTable} employing persistent maps to index triples in one particular slot order (e.g. SPO, OSP or POS).
+ *
+ */
+public abstract class PMapTripleTable extends PMapTupleTable<ThreeTupleMap, Triple>implements TripleTable {
 
-	Logger log = getLogger(PMapTripleTable.class);
+	private final Logger log = getLogger(PMapTripleTable.class);
 
-	AtomicReference<ThreeTupleMap> tmpIndex = new AtomicReference<>(ThreeTupleMap.empty());
+	@Override
+	protected Logger log() {
+		return log;
+	}
 
-	ThreadLocal<ThreeTupleMap> local = withInitial(() -> tmpIndex.get());
+	private final AtomicReference<ThreeTupleMap> master = new AtomicReference<>(ThreeTupleMap.empty());
 
-	ThreadLocal<Boolean> isInTransaction = withInitial(() -> false);
-
-	private final String name;
+	@Override
+	protected AtomicReference<ThreeTupleMap> master() {
+		return master;
+	}
 
 	public PMapTripleTable(final String n) {
-		this.name = n;
+		super(n);
 	}
 
 	@Override
 	public void clear() {
-		local.set(ThreeTupleMap.empty());
-	}
-
-	@Override
-	public void commit() {
-		tmpIndex.set(local.get());
-		end();
-	}
-
-	@Override
-	public void abort() {
-		end();
-	}
-
-	@Override
-	public boolean isInTransaction() {
-		return isInTransaction.get();
-	}
-
-	@Override
-	public void end() {
-		local.remove();
-		isInTransaction.set(false);
-	}
-
-	private void debug(final String msg, final Object... values) {
-		log.debug(name + ": " + msg, values);
+		local().set(ThreeTupleMap.empty());
 	}
 
 	public Stream<Triple> _find(final Node first, final Node second, final Node third) {
 		debug("Querying on three-tuple pattern: {} {} {} .", first, second, third);
-		final ThreeTupleMap threeTuples = local.get();
+		final ThreeTupleMap threeTuples = local().get();
 
 		if (first != null && first.isConcrete()) {
 			log.debug("Using a specific first slot value.");
@@ -112,7 +92,7 @@ public abstract class PMapTripleTable implements TripleTable {
 
 	protected void _add(final Node first, final Node second, final Node third) {
 		debug("Adding three-tuple {} {} {}", first, second, third);
-		ThreeTupleMap threeTuples = local.get();
+		ThreeTupleMap threeTuples = local().get();
 
 		if (!threeTuples.containsKey(first)) threeTuples = threeTuples.plus(first, TwoTupleMap.empty());
 
@@ -123,12 +103,12 @@ public abstract class PMapTripleTable implements TripleTable {
 		if (!oneTuples.contains(third)) oneTuples = oneTuples.plus(third);
 
 		twoTuples = twoTuples.minus(second).plus(second, oneTuples);
-		local.set(threeTuples.minus(first).plus(first, twoTuples));
+		local().set(threeTuples.minus(first).plus(first, twoTuples));
 	}
 
 	protected void _delete(final Node first, final Node second, final Node third) {
 		debug("Deleting three-tuple {} {} {}", first, second, third);
-		final ThreeTupleMap threeTuples = local.get();
+		final ThreeTupleMap threeTuples = local().get();
 		if (threeTuples.containsKey(first)) {
 			TwoTupleMap twoTuples = threeTuples.get(first);
 			if (twoTuples.containsKey(second)) {
@@ -137,14 +117,9 @@ public abstract class PMapTripleTable implements TripleTable {
 					oneTuples = oneTuples.minus(third);
 					twoTuples = twoTuples.minus(second).plus(second, oneTuples);
 					log.debug("Setting transactional index to new value.");
-					local.set(threeTuples.minus(first).plus(first, twoTuples));
+					local().set(threeTuples.minus(first).plus(first, twoTuples));
 				}
 			}
 		}
-	}
-
-	@Override
-	public void begin(final ReadWrite rw) {
-		isInTransaction.set(true);
 	}
 }

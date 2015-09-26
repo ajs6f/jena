@@ -127,6 +127,7 @@ public class DatasetGraphInMemory extends DatasetGraphTriplesQuads implements Tr
 	@Override
 	public void end() {
 		quadsIndex().end();
+		dftGraphIndex().end();
 		isInTransaction.set(false);
 		transactionType.set(null);
 		getLock().leaveCriticalSection();

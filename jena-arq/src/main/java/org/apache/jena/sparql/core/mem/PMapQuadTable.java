@@ -18,7 +18,6 @@
 
 package org.apache.jena.sparql.core.mem;
 
-import static java.lang.ThreadLocal.withInitial;
 import static java.util.stream.Stream.empty;
 import static org.apache.jena.sparql.core.Quad.create;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -30,7 +29,6 @@ import java.util.stream.Stream;
 import org.apache.jena.atlas.lib.PMap;
 import org.apache.jena.atlas.lib.PersistentSet;
 import org.apache.jena.graph.Node;
-import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.mem.FourTupleMap.ThreeTupleMap;
 import org.apache.jena.sparql.core.mem.FourTupleMap.TwoTupleMap;
@@ -41,65 +39,24 @@ import org.slf4j.Logger;
  * use.
  *
  */
-public abstract class PMapQuadTable implements QuadTable {
-
-	private final String name;
+public abstract class PMapQuadTable extends PMapTupleTable<FourTupleMap, Quad> implements QuadTable {
 
 	public PMapQuadTable(final String n) {
-		this.name = n;
+		super(n);
 	}
 
 	private static final Logger log = getLogger(PMapQuadTable.class);
 
-	private void debug(final String msg, final Object... values) {
-		log.debug(name + ": " + msg, values);
+	@Override
+	protected Logger log() {
+		return log;
 	}
 
-	/**
-	 * We use an {@link AtomicReference} to the internal {@link PMap} that holds our index data to be able to swap
-	 * transactional versions of the index data with the shared version atomically.
-	 */
-	private final AtomicReference<FourTupleMap> index = new AtomicReference<>(FourTupleMap.empty());
-
-	private AtomicReference<FourTupleMap> master() {
-		return index;
-	}
-
-	private final ThreadLocal<FourTupleMap> local = withInitial(() -> master().get());
-
-	private final ThreadLocal<Boolean> isInTransaction = withInitial(() -> false);
-
-	protected ThreadLocal<FourTupleMap> local() {
-		return local;
-	}
+	private final AtomicReference<FourTupleMap> master = new AtomicReference<>(FourTupleMap.empty());
 
 	@Override
-	public void begin(final ReadWrite rw) {
-		isInTransaction.set(true);
-	}
-
-	@Override
-	public void abort() {
-		end();
-	}
-
-	@Override
-	public boolean isInTransaction() {
-		return isInTransaction.get();
-	};
-
-	@Override
-	public void end() {
-		debug("Abandoning transactional reference.");
-		local.remove();
-		isInTransaction.set(false);
-	}
-
-	@Override
-	public void commit() {
-		debug("Swapping transactional reference in for shared reference");
-		master().set(local.get());
-		end();
+	protected AtomicReference<FourTupleMap> master() {
+		return master;
 	}
 
 	/**
@@ -115,7 +72,7 @@ public abstract class PMapQuadTable implements QuadTable {
 	 */
 	protected Stream<Quad> _find(final Node first, final Node second, final Node third, final Node fourth) {
 		debug("Querying on four-tuple pattern: {} {} {} {} .", first, second, third, fourth);
-		final FourTupleMap fourTuples = local.get();
+		final FourTupleMap fourTuples = local().get();
 		if (first != null && first.isConcrete()) {
 			log.debug("Using a specific first slot value.");
 			if (!fourTuples.containsKey(first)) return empty();
@@ -151,7 +108,7 @@ public abstract class PMapQuadTable implements QuadTable {
 
 	protected void _add(final Node first, final Node second, final Node third, final Node fourth) {
 		debug("Adding four-tuple: {} {} {} {} .", first, second, third, fourth);
-		FourTupleMap fourTuples = local.get();
+		FourTupleMap fourTuples = local().get();
 		if (!fourTuples.containsKey(first)) fourTuples = fourTuples.plus(first, ThreeTupleMap.empty());
 
 		ThreeTupleMap threeTuples = fourTuples.get(first);
@@ -166,12 +123,12 @@ public abstract class PMapQuadTable implements QuadTable {
 		twoTuples = twoTuples.minus(third).plus(third, oneTuples);
 		threeTuples = threeTuples.minus(second).plus(second, twoTuples);
 		debug("Setting transactional index to new value.");
-		local.set(fourTuples.minus(first).plus(first, threeTuples));
+		local().set(fourTuples.minus(first).plus(first, threeTuples));
 	}
 
 	protected void _delete(final Node first, final Node second, final Node third, final Node fourth) {
 		debug("Removing four-tuple: {} {} {} {} .", first, second, third, fourth);
-		final FourTupleMap fourTuples = local.get();
+		final FourTupleMap fourTuples = local().get();
 		if (fourTuples.containsKey(first)) {
 			ThreeTupleMap threeTuples = fourTuples.get(first);
 			if (threeTuples.containsKey(second)) {
@@ -183,7 +140,7 @@ public abstract class PMapQuadTable implements QuadTable {
 						twoTuples = twoTuples.minus(third).plus(third, oneTuples);
 						threeTuples = threeTuples.minus(second).plus(second, twoTuples);
 						debug("Setting transactional index to new value.");
-						local.set(fourTuples.minus(first).plus(first, threeTuples));
+						local().set(fourTuples.minus(first).plus(first, threeTuples));
 					}
 				}
 			}
