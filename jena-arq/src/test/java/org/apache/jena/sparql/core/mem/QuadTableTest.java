@@ -30,10 +30,9 @@ import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Quad;
-import org.apache.jena.sparql.core.mem.IndexForm.Slot;
 import org.junit.Assert;
 
-public abstract class IndexTest extends Assert {
+public abstract class QuadTableTest extends Assert {
 
 	protected static final Node sampleNode = createURI("info:test");
 	protected static final Quad q = Quad.create(sampleNode, sampleNode, sampleNode, sampleNode);

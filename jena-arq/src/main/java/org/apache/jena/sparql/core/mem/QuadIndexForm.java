@@ -21,7 +21,7 @@ package org.apache.jena.sparql.core.mem;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 import static java.util.stream.Stream.iterate;
-import static org.apache.jena.sparql.core.mem.IndexForm.Slot.*;
+import static org.apache.jena.sparql.core.mem.Slot.*;
 
 import java.util.EnumSet;
 import java.util.Iterator;
@@ -37,12 +37,12 @@ import org.apache.jena.sparql.core.Quad;
  * Six covering index forms and machinery to determine which of them is best suited to answer a given query.
  *
  */
-public enum IndexForm implements Supplier<PMapBasedIndex> {
+public enum QuadIndexForm implements Supplier<QuadTable> {
 
 	GSPO(asList(GRAPH, SUBJECT, PREDICATE, OBJECT)) {
 		@Override
-		public PMapBasedIndex get() {
-			return new PMapBasedIndex(this.name()) {
+		public PMapQuadTable get() {
+			return new PMapQuadTable(name()) {
 				@Override
 				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
 					return _find(g, s, p, o);
@@ -62,8 +62,8 @@ public enum IndexForm implements Supplier<PMapBasedIndex> {
 	},
 	GOPS(asList(GRAPH, OBJECT, PREDICATE, SUBJECT)) {
 		@Override
-		public PMapBasedIndex get() {
-			return new PMapBasedIndex(this.name()) {
+		public PMapQuadTable get() {
+			return new PMapQuadTable(name()) {
 
 				@Override
 				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
@@ -85,8 +85,8 @@ public enum IndexForm implements Supplier<PMapBasedIndex> {
 	},
 	SPOG(asList(SUBJECT, PREDICATE, OBJECT, GRAPH)) {
 		@Override
-		public PMapBasedIndex get() {
-			return new PMapBasedIndex(this.name()) {
+		public PMapQuadTable get() {
+			return new PMapQuadTable(name()) {
 
 				@Override
 				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
@@ -107,8 +107,8 @@ public enum IndexForm implements Supplier<PMapBasedIndex> {
 	},
 	OSGP(asList(OBJECT, SUBJECT, GRAPH, PREDICATE)) {
 		@Override
-		public PMapBasedIndex get() {
-			return new PMapBasedIndex(this.name()) {
+		public PMapQuadTable get() {
+			return new PMapQuadTable(name()) {
 
 				@Override
 				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
@@ -129,8 +129,8 @@ public enum IndexForm implements Supplier<PMapBasedIndex> {
 	},
 	PGSO(asList(PREDICATE, GRAPH, SUBJECT, OBJECT)) {
 		@Override
-		public PMapBasedIndex get() {
-			return new PMapBasedIndex(this.name()) {
+		public PMapQuadTable get() {
+			return new PMapQuadTable(name()) {
 
 				@Override
 				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
@@ -151,8 +151,8 @@ public enum IndexForm implements Supplier<PMapBasedIndex> {
 	},
 	OPSG(asList(OBJECT, PREDICATE, SUBJECT, GRAPH)) {
 		@Override
-		public PMapBasedIndex get() {
-			return new PMapBasedIndex(this.name()) {
+		public PMapQuadTable get() {
+			return new PMapQuadTable(name()) {
 
 				@Override
 				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
@@ -172,26 +172,22 @@ public enum IndexForm implements Supplier<PMapBasedIndex> {
 		}
 	};
 
-	public static enum Slot {
-		GRAPH, SUBJECT, PREDICATE, OBJECT;
-	}
-
-	private IndexForm(final List<IndexForm.Slot> fp) {
+	private QuadIndexForm(final List<Slot> fp) {
 		this.fullpattern = fp;
 	}
 
-	public final List<IndexForm.Slot> fullpattern;
+	public final List<Slot> fullpattern;
 
-	public boolean avoidsTraversal(final Set<IndexForm.Slot> pattern) {
+	public boolean avoidsTraversal(final Set<Slot> pattern) {
 		return iterate(4, i -> i - 1).limit(4).map(j -> fullpattern.subList(0, j)).map(EnumSet::copyOf)
 				.anyMatch(pattern::equals);
 	}
 
-	public static IndexForm chooseFrom(final Set<Slot> pattern) {
+	public static QuadIndexForm chooseFrom(final Set<Slot> pattern) {
 		return indexForms().filter(f -> f.avoidsTraversal(pattern)).findFirst().orElse(GSPO);
 	}
 
-	public static Stream<IndexForm> indexForms() {
+	public static Stream<QuadIndexForm> indexForms() {
 		return stream(values());
 	}
 }

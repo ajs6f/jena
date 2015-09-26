@@ -22,7 +22,7 @@ import static org.apache.jena.atlas.iterator.Iter.toSet;
 import static org.apache.jena.ext.com.google.common.collect.ImmutableSet.of;
 import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.graph.NodeFactory.createBlankNode;
-import static org.apache.jena.sparql.core.mem.IndexForm.Slot.*;
+import static org.apache.jena.sparql.core.mem.Slot.*;
 
 import java.util.HashSet;
 import java.util.Iterator;
@@ -30,10 +30,9 @@ import java.util.Set;
 
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Quad;
-import org.apache.jena.sparql.core.mem.IndexForm.Slot;
 import org.junit.Test;
 
-public class TestHexIndex extends IndexTest {
+public class TestHexIndex extends QuadTableTest {
 
 	@Test
 	public void addAndRemoveSomeQuads() {

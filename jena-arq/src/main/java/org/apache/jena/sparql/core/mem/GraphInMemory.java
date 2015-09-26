@@ -9,8 +9,11 @@ public class GraphInMemory extends GraphView {
 
 	private final DatasetGraphInMemory datasetGraph;
 
+	private final Node graphNode;
+
 	protected GraphInMemory(final DatasetGraphInMemory dsg, final Node gn) {
 		super(dsg, gn);
+		this.graphNode = gn;
 		this.datasetGraph = dsg;
 	}
 

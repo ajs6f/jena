@@ -21,8 +21,8 @@ package org.apache.jena.sparql.core.mem;
 import static java.lang.ThreadLocal.withInitial;
 import static java.util.EnumSet.noneOf;
 import static java.util.stream.Collectors.toMap;
-import static org.apache.jena.sparql.core.mem.IndexForm.*;
-import static org.apache.jena.sparql.core.mem.IndexForm.Slot.*;
+import static org.apache.jena.sparql.core.mem.QuadIndexForm.*;
+import static org.apache.jena.sparql.core.mem.Slot.*;
 
 import java.util.EnumMap;
 import java.util.Iterator;
@@ -31,27 +31,26 @@ import java.util.Set;
 
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Quad;
-import org.apache.jena.sparql.core.mem.IndexForm.Slot;
 
 /**
- * A six-way {@link QuadTable} using all of the available forms in {@link IndexForm}.
+ * A six-way {@link QuadTable} using all of the available forms in {@link QuadIndexForm}.
  *
  */
 public class HexIndex implements QuadTable {
 
 	private final ThreadLocal<Boolean> isInTransaction = withInitial(() -> false);
 
-	private final Map<IndexForm, PMapBasedIndex> indexBlock = new EnumMap<IndexForm, PMapBasedIndex>(
-			indexForms().collect(toMap(x -> x, IndexForm::get)));
+	private final Map<QuadIndexForm, QuadTable> indexBlock = new EnumMap<QuadIndexForm, QuadTable>(
+			indexForms().collect(toMap(x -> x, QuadIndexForm::get)));
 
 	@Override
 	public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
-		final Set<Slot> pattern = noneOf(IndexForm.Slot.class);
+		final Set<Slot> pattern = noneOf(Slot.class);
 		if (isConcrete(g)) pattern.add(GRAPH);
 		if (isConcrete(s)) pattern.add(SUBJECT);
 		if (isConcrete(p)) pattern.add(PREDICATE);
 		if (isConcrete(o)) pattern.add(OBJECT);
-		final IndexForm choice = chooseFrom(pattern);
+		final QuadIndexForm choice = chooseFrom(pattern);
 		return indexBlock.get(choice).find(g, s, p, o);
 	}
 
@@ -71,7 +70,8 @@ public class HexIndex implements QuadTable {
 
 	@Override
 	public Iterator<Node> listGraphNodes() {
-		return indexBlock.get(GSPO).local().get().entrySet().stream().map(Map.Entry::getKey).iterator();
+		// TODO square this cast away
+		return ((PMapQuadTable) indexBlock.get(GSPO)).local().get().entrySet().stream().map(Map.Entry::getKey).iterator();
 	}
 
 	@Override

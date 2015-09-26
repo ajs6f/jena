@@ -21,17 +21,16 @@ package org.apache.jena.sparql.core.mem;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.jena.ext.com.google.common.collect.ImmutableSet.of;
 import static org.apache.jena.ext.com.google.common.collect.Sets.newHashSet;
-import static org.apache.jena.sparql.core.mem.IndexForm.*;
-import static org.apache.jena.sparql.core.mem.IndexForm.Slot.*;
+import static org.apache.jena.sparql.core.mem.QuadIndexForm.*;
+import static org.apache.jena.sparql.core.mem.Slot.*;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.jena.sparql.core.mem.IndexForm.Slot;
 import org.junit.Test;
 
-public class TestIndexForm extends IndexTest {
+public class TestQuadIndexForm extends QuadTableTest {
 
 	@Test
 	public void anAllWildcardQueryCannotAvoidTraversal() {
@@ -95,12 +94,12 @@ public class TestIndexForm extends IndexTest {
 		return key;
 	}
 
-	private void avoidsTraversal(final IndexForm indexForm, final Set<Set<Slot>> correctAnswers) {
+	private void avoidsTraversal(final QuadIndexForm indexForm, final Set<Set<Slot>> correctAnswers) {
 		final Set<Set<Slot>> answers = queryPatterns().filter(indexForm::avoidsTraversal).collect(toSet());
 		assertEquals(correctAnswers, answers);
 	}
 
-	private static Map<Set<Slot>, Set<IndexForm>> answerKey = new HashMap<Set<Slot>, Set<IndexForm>>() {
+	private static Map<Set<Slot>, Set<QuadIndexForm>> answerKey = new HashMap<Set<Slot>, Set<QuadIndexForm>>() {
 		{
 			put(of(GRAPH), of(GSPO, GOPS));
 			put(of(GRAPH, SUBJECT), of(GSPO));
@@ -124,12 +123,12 @@ public class TestIndexForm extends IndexTest {
 	@Test
 	public void aCorrectIndexIsChosenForEachPattern() {
 		answerKey.forEach((sample, correctAnswers) -> {
-			assertTrue(correctAnswers.contains(IndexForm.chooseFrom(sample)));
+			assertTrue(correctAnswers.contains(QuadIndexForm.chooseFrom(sample)));
 		});
 	}
 
 	@Test
 	public void addAndRemoveSomeQuads() {
-		indexForms().map(IndexForm::get).forEach(this::addAndRemoveSomeQuads);
+		indexForms().map(QuadIndexForm::get).forEach(this::addAndRemoveSomeQuads);
 	}
 }

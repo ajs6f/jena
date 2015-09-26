@@ -41,15 +41,15 @@ import org.slf4j.Logger;
  * An implementation of {@link QuadTable} based on the use of nested {@link PMap}s. Intended for high-speed in-memory use.
  *
  */
-public abstract class PMapBasedIndex implements QuadTable {
+public abstract class PMapQuadTable implements QuadTable {
 
 	private final String name;
 
-	public PMapBasedIndex(final String n) {
+	public PMapQuadTable(final String n) {
 		this.name = n;
 	}
 
-	private static final Logger log = getLogger(PMapBasedIndex.class);
+	private static final Logger log = getLogger(PMapQuadTable.class);
 
 	private void debug(final String msg, final Object... values) {
 		log.debug(name + ": " + msg, values);
@@ -141,12 +141,12 @@ public abstract class PMapBasedIndex implements QuadTable {
 					log.debug("Using a wildcard fourth slot value.");
 					return oneTuples.stream().map(slot4 -> create(first, second, third, slot4)).iterator();
 				}
-				log.debug("Using a wildcard third and fourth slot value.");
+				log.debug("Using wildcard third and fourth slot values.");
 				return twoTuples.descend(
 						(slot3, oneTuples) -> oneTuples.stream().map(slot4 -> create(first, second, slot3, slot4)))
 						.iterator();
 			}
-			log.debug("Using a wildcard second, third and fourth slot value.");
+			log.debug("Using wildcard second, third and fourth slot values.");
 			return threeTuples
 					.descend((slot2, twoTuples) -> twoTuples.descend(
 							(slot3, oneTuples) -> oneTuples.stream().map(slot4 -> create(first, slot2, slot3, slot4))))

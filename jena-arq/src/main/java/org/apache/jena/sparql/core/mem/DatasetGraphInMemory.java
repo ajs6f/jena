@@ -23,7 +23,6 @@ import static org.apache.jena.atlas.iterator.Iter.iter;
 import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.query.ReadWrite.READ;
 import static org.apache.jena.query.ReadWrite.WRITE;
-import static org.apache.jena.sparql.core.Quad.defaultGraphNodeGenerated;
 import static org.apache.jena.sparql.core.Quad.isUnionGraph;
 
 import java.util.HashSet;
@@ -41,7 +40,7 @@ import org.apache.jena.shared.Lock;
 import org.apache.jena.shared.LockMRPlusSW;
 import org.apache.jena.sparql.JenaTransactionException;
 import org.apache.jena.sparql.core.DatasetGraph;
-import org.apache.jena.sparql.core.DatasetGraphQuad;
+import org.apache.jena.sparql.core.DatasetGraphTriplesQuads;
 import org.apache.jena.sparql.core.DatasetPrefixStorage;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.Transactional;
@@ -51,7 +50,7 @@ import org.apache.jena.sparql.core.Transactional;
  * in-memory operation.
  *
  */
-public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactional {
+public class DatasetGraphInMemory extends DatasetGraphTriplesQuads implements Transactional {
 
 	private final DatasetPrefixStorage prefixes = new DatasetPrefixStorageInMemory();
 
@@ -67,10 +66,16 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 
 	private final ThreadLocal<ReadWrite> transactionType = withInitial(() -> null);
 
-	private final QuadTable index;
+	private final QuadTable quadsIndex;
 
-	private QuadTable index() {
-		return index;
+	private QuadTable quadsIndex() {
+		return quadsIndex;
+	}
+
+	private final TripleTable dftGraph;
+
+	private TripleTable dftGraphIndex() {
+		return dftGraph;
 	}
 
 	@Override
@@ -79,11 +84,12 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 	}
 
 	public DatasetGraphInMemory() {
-		this(new HexIndex());
+		this(new HexIndex(), new TriIndex());
 	}
 
-	public DatasetGraphInMemory(final QuadTable i) {
-		this.index = i;
+	public DatasetGraphInMemory(final QuadTable i, final TripleTable t) {
+		this.quadsIndex = i;
+		this.dftGraph = t;
 	}
 
 	@Override
@@ -94,7 +100,7 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 		getLock().enterCriticalSection(readWrite.equals(READ)); // get the dataset write lock, if needed.
 		commitLock.readLock().lock(); // if a commit is proceeding, wait so that we see a coherent index state
 		try {
-			index().begin(readWrite);
+			quadsIndex().begin(readWrite);
 		} finally {
 			commitLock.readLock().unlock();
 		}
@@ -105,7 +111,8 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 		if (!isInTransaction()) throw new JenaTransactionException("Tried to commit outside a transaction!");
 		commitLock.writeLock().lock();
 		try {
-			index().commit();
+			quadsIndex().commit();
+			dftGraphIndex().commit();
 		} finally {
 			commitLock.writeLock().unlock();
 		}
@@ -120,7 +127,7 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 
 	@Override
 	public void end() {
-		index().end();
+		quadsIndex().end();
 		isInTransaction.set(false);
 		transactionType.set(null);
 		getLock().leaveCriticalSection();
@@ -133,16 +140,6 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 
 	public ReadWrite transactionType() {
 		return transactionType.get();
-	}
-
-	@Override
-	public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
-		return safeFind(g, s, p, o);
-	}
-
-	@Override
-	public Iterator<Quad> findNG(final Node g, final Node s, final Node p, final Node o) {
-		return safeFind(g, s, p, o);
 	}
 
 	private <T> Iterator<T> access(final Supplier<Iterator<T>> source) {
@@ -159,47 +156,38 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 
 	@Override
 	public Iterator<Node> listGraphNodes() {
-		return access(() -> index().listGraphNodes());
+		return access(() -> quadsIndex().listGraphNodes());
 	}
 
-	private Iterator<Quad> finder(final Node g, final Node s, final Node p, final Node o) {
+	private Iterator<Quad> quadsFinder(final Node g, final Node s, final Node p, final Node o) {
 		if (isUnionGraph(g)) { // union graph is the merge of named graphs
 			final Set<Triple> seen = new HashSet<>();
-			return iter(index().find(ANY, s, p, o)).filter(q -> !q.isDefaultGraph() && seen.add(q.asTriple()));
+			return iter(quadsIndex().find(ANY, s, p, o)).filter(q -> !q.isDefaultGraph() && seen.add(q.asTriple()));
 		}
-		return index().find(g, s, p, o);
+		return quadsIndex().find(g, s, p, o);
 	};
 
-	private Iterator<Quad> safeFind(final Node g, final Node s, final Node p, final Node o) {
-		return access(() -> finder(g, s, p, o));
-	}
-
-	@Override
-	public void add(final Quad q) {
-		mutate(index()::add, q);
-	}
-
-	@Override
-	public void delete(final Quad q) {
-		mutate(index()::delete, q);
-	}
-
-	@Override
-	public Graph getDefaultGraph() {
-		return new GraphInMemory(this, null);
-	}
+	private Iterator<Quad> triplesFinder(final Node s, final Node p, final Node o) {
+		return triples2quadsDftGraph(dftGraphIndex().find(s, p, o).iterator());
+	};
 
 	@Override
 	public void setDefaultGraph(final Graph g) {
 		mutate(graph -> {
-			removeGraph(defaultGraphNodeGenerated);
-			addGraph(defaultGraphNodeGenerated, graph);
+			dftGraphIndex().clear();
+			graph.find(ANY, ANY, ANY)
+					.forEachRemaining(t -> addToDftGraph(t.getSubject(), t.getPredicate(), t.getObject()));
 		} , g);
 	}
 
 	@Override
 	public Graph getGraph(final Node graphNode) {
 		return new GraphInMemory(this, graphNode);
+	}
+
+	@Override
+	public Graph getDefaultGraph() {
+		return getGraph(Quad.defaultGraphNodeGenerated);
 	}
 
 	private Consumer<Graph> addGraph(final Node name) {
@@ -239,5 +227,40 @@ public class DatasetGraphInMemory extends DatasetGraphQuad implements Transactio
 
 	public DatasetPrefixStorage getPrefixes() {
 		return prefixes;
+	}
+
+	@Override
+	protected void addToDftGraph(final Node s, final Node p, final Node o) {
+		mutate(dftGraphIndex()::add, Triple.create(s, p, o));
+	}
+
+	@Override
+	protected void addToNamedGraph(final Node g, final Node s, final Node p, final Node o) {
+		mutate(quadsIndex()::add, Quad.create(g, s, p, o));
+	}
+
+	@Override
+	protected void deleteFromDftGraph(final Node s, final Node p, final Node o) {
+		mutate(dftGraphIndex()::delete, Triple.create(s, p, o));
+	}
+
+	@Override
+	protected void deleteFromNamedGraph(final Node g, final Node s, final Node p, final Node o) {
+		mutate(quadsIndex()::delete, Quad.create(g, s, p, o));
+	}
+
+	@Override
+	protected Iterator<Quad> findInDftGraph(final Node s, final Node p, final Node o) {
+		return access(() -> triplesFinder(s, p, o));
+	}
+
+	@Override
+	protected Iterator<Quad> findInSpecificNamedGraph(final Node g, final Node s, final Node p, final Node o) {
+		return access(() -> quadsFinder(g, s, p, o));
+	}
+
+	@Override
+	protected Iterator<Quad> findInAnyNamedGraphs(final Node s, final Node p, final Node o) {
+		return findInSpecificNamedGraph(ANY, s, p, o);
 	}
 }
