@@ -28,6 +28,7 @@ import java.util.EnumMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Quad;
@@ -44,7 +45,7 @@ public class HexIndex implements QuadTable {
 			indexForms().collect(toMap(x -> x, QuadIndexForm::get)));
 
 	@Override
-	public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
+	public Stream<Quad> find(final Node g, final Node s, final Node p, final Node o) {
 		final Set<Slot> pattern = noneOf(Slot.class);
 		if (isConcrete(g)) pattern.add(GRAPH);
 		if (isConcrete(s)) pattern.add(SUBJECT);

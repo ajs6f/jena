@@ -24,7 +24,6 @@ import static java.util.stream.Stream.iterate;
 import static org.apache.jena.sparql.core.mem.Slot.*;
 
 import java.util.EnumSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
@@ -44,7 +43,7 @@ public enum QuadIndexForm implements Supplier<QuadTable> {
 		public PMapQuadTable get() {
 			return new PMapQuadTable(name()) {
 				@Override
-				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
+				public Stream<Quad> find(final Node g, final Node s, final Node p, final Node o) {
 					return _find(g, s, p, o);
 				}
 
@@ -66,7 +65,7 @@ public enum QuadIndexForm implements Supplier<QuadTable> {
 			return new PMapQuadTable(name()) {
 
 				@Override
-				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
+				public Stream<Quad> find(final Node g, final Node s, final Node p, final Node o) {
 					return _find(g, o, p, s);
 				}
 
@@ -89,7 +88,7 @@ public enum QuadIndexForm implements Supplier<QuadTable> {
 			return new PMapQuadTable(name()) {
 
 				@Override
-				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
+				public Stream<Quad> find(final Node g, final Node s, final Node p, final Node o) {
 					return _find(s, p, o, g);
 				}
 
@@ -111,7 +110,7 @@ public enum QuadIndexForm implements Supplier<QuadTable> {
 			return new PMapQuadTable(name()) {
 
 				@Override
-				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
+				public Stream<Quad> find(final Node g, final Node s, final Node p, final Node o) {
 					return _find(o, s, g, p);
 				}
 
@@ -133,7 +132,7 @@ public enum QuadIndexForm implements Supplier<QuadTable> {
 			return new PMapQuadTable(name()) {
 
 				@Override
-				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
+				public Stream<Quad> find(final Node g, final Node s, final Node p, final Node o) {
 					return _find(p, g, s, o);
 				}
 
@@ -155,7 +154,7 @@ public enum QuadIndexForm implements Supplier<QuadTable> {
 			return new PMapQuadTable(name()) {
 
 				@Override
-				public Iterator<Quad> find(final Node g, final Node s, final Node p, final Node o) {
+				public Stream<Quad> find(final Node g, final Node s, final Node p, final Node o) {
 					return _find(o, p, s, g);
 				}
 

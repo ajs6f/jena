@@ -19,15 +19,16 @@
 package org.apache.jena.sparql.core.mem;
 
 import static java.util.EnumSet.allOf;
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jena.ext.com.google.common.collect.ImmutableSet.of;
 import static org.apache.jena.ext.com.google.common.collect.Sets.powerSet;
 import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.graph.NodeFactory.createURI;
 
-import java.util.Iterator;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import org.apache.jena.ext.com.google.common.collect.ImmutableSet;
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Quad;
 import org.junit.Assert;
@@ -48,41 +49,33 @@ public abstract class QuadTableTest extends Assert {
 		// simple add-and-delete
 		index.begin();
 		index.add(q);
-		Iterator<Quad> contents = index.find(ANY, ANY, ANY, ANY);
-		assertTrue(contents.hasNext());
-		assertEquals(q, contents.next());
-		assertFalse(contents.hasNext());
+		Set<Quad> contents = index.find(ANY, ANY, ANY, ANY).collect(toSet());
+		assertEquals(ImmutableSet.of(q), contents);
 		index.delete(q);
-		contents = index.find(ANY, ANY, ANY, ANY);
-		assertFalse(contents.hasNext());
+		contents = index.find(ANY, ANY, ANY, ANY).collect(toSet());
+		assertTrue(contents.isEmpty());
 		index.end();
 
 		// add, abort, then check to see that nothing was persisted
 		index.begin();
 		index.add(q);
-		contents = index.find(ANY, ANY, ANY, ANY);
-		assertTrue(contents.hasNext());
-		assertEquals(q, contents.next());
-		assertFalse(contents.hasNext());
+		contents = index.find(ANY, ANY, ANY, ANY).collect(toSet());
+		assertEquals(ImmutableSet.of(q), contents);
 		index.end();
 		index.begin();
-		contents = index.find(ANY, ANY, ANY, ANY);
-		assertFalse(contents.hasNext());
+		contents = index.find(ANY, ANY, ANY, ANY).collect(toSet());
+		assertTrue(contents.isEmpty());
 		index.end();
 
 		// add, commit, and check to see that persistence occurred
 		index.begin();
 		index.add(q);
-		contents = index.find(ANY, ANY, ANY, ANY);
-		assertTrue(contents.hasNext());
-		assertEquals(q, contents.next());
-		assertFalse(contents.hasNext());
+		contents = index.find(ANY, ANY, ANY, ANY).collect(toSet());
+		assertEquals(ImmutableSet.of(q), contents);
 		index.commit();
 		index.begin();
-		contents = index.find(ANY, ANY, ANY, ANY);
-		assertTrue(contents.hasNext());
-		assertEquals(q, contents.next());
-		assertFalse(contents.hasNext());
+		contents = index.find(ANY, ANY, ANY, ANY).collect(toSet());
+		assertEquals(ImmutableSet.of(q), contents);
 		index.end();
 	}
 }

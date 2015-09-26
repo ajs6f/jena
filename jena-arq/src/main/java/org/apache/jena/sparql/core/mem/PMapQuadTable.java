@@ -19,8 +19,7 @@
 package org.apache.jena.sparql.core.mem;
 
 import static java.lang.ThreadLocal.withInitial;
-import static java.util.Collections.emptyIterator;
-import static org.apache.jena.atlas.iterator.Iter.singleton;
+import static java.util.stream.Stream.empty;
 import static org.apache.jena.sparql.core.Quad.create;
 import static org.slf4j.LoggerFactory.getLogger;
 
@@ -38,7 +37,8 @@ import org.apache.jena.sparql.core.mem.FourTupleMap.TwoTupleMap;
 import org.slf4j.Logger;
 
 /**
- * An implementation of {@link QuadTable} based on the use of nested {@link PMap}s. Intended for high-speed in-memory use.
+ * An implementation of {@link QuadTable} based on the use of nested {@link PMap}s. Intended for high-speed in-memory
+ * use.
  *
  */
 public abstract class PMapQuadTable implements QuadTable {
@@ -118,46 +118,40 @@ public abstract class PMapQuadTable implements QuadTable {
 	 * @param fourth the value in the first slot of the tuple
 	 * @return an <code>Iterator</code> of tuples matching the pattern
 	 */
-	protected Iterator<Quad> _find(final Node first, final Node second, final Node third, final Node fourth) {
+	protected Stream<Quad> _find(final Node first, final Node second, final Node third, final Node fourth) {
 		debug("Querying on four-tuple pattern: {} {} {} {} .", first, second, third, fourth);
 		final FourTupleMap fourTuples = local.get();
 		if (first != null && first.isConcrete()) {
 			log.debug("Using a specific first slot value.");
-			if (!fourTuples.containsKey(first)) return emptyIterator();
+			if (!fourTuples.containsKey(first)) return empty();
 			final ThreeTupleMap threeTuples = fourTuples.get(first);
 			if (second != null && second.isConcrete()) {
 				log.debug("Using a specific second slot value.");
-				if (!threeTuples.containsKey(second)) return emptyIterator();
+				if (!threeTuples.containsKey(second)) return empty();
 				final TwoTupleMap twoTuples = threeTuples.get(second);
 				if (third != null && third.isConcrete()) {
 					log.debug("Using a specific third slot value.");
-					if (!twoTuples.containsKey(third)) return emptyIterator();
+					if (!twoTuples.containsKey(third)) return empty();
 					final PersistentSet<Node> oneTuples = twoTuples.get(third);
 					if (fourth != null && fourth.isConcrete()) {
 						log.debug("Using a specific fourth slot value.");
-						if (!oneTuples.contains(fourth)) return emptyIterator();
-						return singleton(create(first, second, third, fourth));
+						if (!oneTuples.contains(fourth)) return empty();
+						return Stream.of(create(first, second, third, fourth));
 					}
 					log.debug("Using a wildcard fourth slot value.");
-					return oneTuples.stream().map(slot4 -> create(first, second, third, slot4)).iterator();
+					return oneTuples.stream().map(slot4 -> create(first, second, third, slot4));
 				}
 				log.debug("Using wildcard third and fourth slot values.");
 				return twoTuples.descend(
-						(slot3, oneTuples) -> oneTuples.stream().map(slot4 -> create(first, second, slot3, slot4)))
-						.iterator();
+						(slot3, oneTuples) -> oneTuples.stream().map(slot4 -> create(first, second, slot3, slot4)));
 			}
 			log.debug("Using wildcard second, third and fourth slot values.");
-			return threeTuples
-					.descend((slot2, twoTuples) -> twoTuples.descend(
-							(slot3, oneTuples) -> oneTuples.stream().map(slot4 -> create(first, slot2, slot3, slot4))))
-					.iterator();
+			return threeTuples.descend((slot2, twoTuples) -> twoTuples.descend(
+					(slot3, oneTuples) -> oneTuples.stream().map(slot4 -> create(first, slot2, slot3, slot4))));
 		}
 		log.debug("Using a wildcard for all slot values.");
-		return fourTuples
-				.descend((slot1,
-						threeTuples) -> threeTuples.descend((slot2, twoTuples) -> twoTuples.descend((slot3,
-								oneTuples) -> oneTuples.stream().map(slot4 -> create(slot1, slot2, slot3, slot4)))))
-				.iterator();
+		return fourTuples.descend((slot1, threeTuples) -> threeTuples.descend((slot2, twoTuples) -> twoTuples
+				.descend((slot3, oneTuples) -> oneTuples.stream().map(slot4 -> create(slot1, slot2, slot3, slot4)))));
 	}
 
 	protected void _add(final Node first, final Node second, final Node third, final Node fourth) {

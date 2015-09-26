@@ -86,14 +86,14 @@ public enum TripleIndexForm implements Supplier<TripleTable> {
 		}
 	};
 	private TripleIndexForm(final Set<Slot> tp, final Slot op) {
-		this.twoPattern = tp;
-		this.onePattern = of(op);
+		this.twoPrefix = tp;
+		this.onePrefix = of(op);
 	}
 
-	public final Set<Slot> twoPattern, onePattern;
+	public final Set<Slot> twoPrefix, onePrefix;
 
 	public boolean avoidsTraversal(final Set<Slot> pattern) {
-		return twoPattern.equals(pattern) || onePattern.equals(pattern);
+		return twoPrefix.equals(pattern) || onePrefix.equals(pattern);
 	}
 
 	public static TripleIndexForm chooseFrom(final Set<Slot> pattern) {

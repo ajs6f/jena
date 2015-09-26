@@ -18,6 +18,7 @@
 
 package org.apache.jena.sparql.core.mem;
 
+import static java.util.stream.Collectors.toSet;
 import static org.apache.jena.atlas.iterator.Iter.toSet;
 import static org.apache.jena.ext.com.google.common.collect.ImmutableSet.of;
 import static org.apache.jena.graph.Node.ANY;
@@ -25,7 +26,6 @@ import static org.apache.jena.graph.NodeFactory.createBlankNode;
 import static org.apache.jena.sparql.core.mem.Slot.*;
 
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.jena.graph.Node;
@@ -68,14 +68,13 @@ public class TestHexIndex extends QuadTableTest {
 			index.commit();
 
 			index.begin(null);
-			Iterator<Quad> contents = index.find(testQuery.getGraph(), testQuery.getSubject(), testQuery.getPredicate(),
-					testQuery.getObject());
-			assertTrue(contents.hasNext());
-			assertEquals(q, contents.next());
-			assertFalse(contents.hasNext());
+			Set<Quad> contents = index
+					.find(testQuery.getGraph(), testQuery.getSubject(), testQuery.getPredicate(), testQuery.getObject())
+					.collect(toSet());
+			assertEquals(of(q), contents);
 			// both Node.ANY and null should work as wildcards
-			contents = index.find(null, ANY, null, ANY);
-			assertEquals(of(q, noiseQuad), toSet(contents));
+			contents = index.find(null, ANY, null, ANY).collect(toSet());
+			assertEquals(of(q, noiseQuad), contents);
 			index.end();
 		});
 	}

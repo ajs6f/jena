@@ -19,7 +19,6 @@
 package org.apache.jena.sparql.core.mem;
 
 import static java.lang.ThreadLocal.withInitial;
-import static org.apache.jena.atlas.iterator.Iter.iter;
 import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.query.ReadWrite.READ;
 import static org.apache.jena.query.ReadWrite.WRITE;
@@ -162,9 +161,9 @@ public class DatasetGraphInMemory extends DatasetGraphTriplesQuads implements Tr
 	private Iterator<Quad> quadsFinder(final Node g, final Node s, final Node p, final Node o) {
 		if (isUnionGraph(g)) { // union graph is the merge of named graphs
 			final Set<Triple> seen = new HashSet<>();
-			return iter(quadsIndex().find(ANY, s, p, o)).filter(q -> !q.isDefaultGraph() && seen.add(q.asTriple()));
+			return quadsIndex().find(ANY, s, p, o).filter(q -> !q.isDefaultGraph() && seen.add(q.asTriple())).iterator();
 		}
-		return quadsIndex().find(g, s, p, o);
+		return quadsIndex().find(g, s, p, o).iterator();
 	};
 
 	private Iterator<Quad> triplesFinder(final Node s, final Node p, final Node o) {

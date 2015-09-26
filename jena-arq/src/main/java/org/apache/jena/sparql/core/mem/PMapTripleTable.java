@@ -32,6 +32,11 @@ public abstract class PMapTripleTable implements TripleTable {
 	}
 
 	@Override
+	public void clear() {
+		local.set(ThreeTupleMap.empty());
+	}
+
+	@Override
 	public void commit() {
 		tmpIndex.set(local.get());
 		end();
