@@ -94,16 +94,11 @@ public abstract class PMapTripleTable extends PMapTupleTable<ThreeTupleMap, Trip
 
 	protected void _add(final Node first, final Node second, final Node third) {
 		debug("Adding three-tuple {} {} {}", first, second, third);
-		ThreeTupleMap threeTuples = local().get();
+		final ThreeTupleMap threeTuples = local().get();
+		TwoTupleMap twoTuples = threeTuples.containsKey(first) ? threeTuples.get(first) : TwoTupleMap.empty();
+		PersistentSet<Node> oneTuples = twoTuples.containsKey(second) ? twoTuples.get(second) : PersistentSet.empty();
 
-		if (!threeTuples.containsKey(first)) threeTuples = threeTuples.plus(first, TwoTupleMap.empty());
-
-		TwoTupleMap twoTuples = threeTuples.get(first);
-		if (!twoTuples.containsKey(second)) twoTuples = twoTuples.plus(second, PersistentSet.empty());
-
-		PersistentSet<Node> oneTuples = twoTuples.get(second);
-		if (!oneTuples.contains(third)) oneTuples = oneTuples.plus(third);
-
+		oneTuples = oneTuples.plus(third);
 		twoTuples = twoTuples.minus(second).plus(second, oneTuples);
 		local().set(threeTuples.minus(first).plus(first, twoTuples));
 	}

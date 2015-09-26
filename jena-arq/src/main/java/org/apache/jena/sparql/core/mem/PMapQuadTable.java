@@ -103,18 +103,13 @@ public abstract class PMapQuadTable extends PMapTupleTable<FourTupleMap, Quad>im
 
 	protected void _add(final Node first, final Node second, final Node third, final Node fourth) {
 		debug("Adding four-tuple: {} {} {} {} .", first, second, third, fourth);
-		FourTupleMap fourTuples = local().get();
-		if (!fourTuples.containsKey(first)) fourTuples = fourTuples.plus(first, ThreeTupleMap.empty());
+		final FourTupleMap fourTuples = local().get();
 
-		ThreeTupleMap threeTuples = fourTuples.get(first);
-		if (!threeTuples.containsKey(second)) threeTuples = threeTuples.plus(second, TwoTupleMap.empty());
+		ThreeTupleMap threeTuples = fourTuples.containsKey(first) ? fourTuples.get(first) : ThreeTupleMap.empty();
+		TwoTupleMap twoTuples = threeTuples.containsKey(second) ? threeTuples.get(second) : TwoTupleMap.empty();
+		PersistentSet<Node> oneTuples = twoTuples.containsKey(third)? twoTuples.get(third) : PersistentSet.empty();
 
-		TwoTupleMap twoTuples = threeTuples.get(second);
-		if (!twoTuples.containsKey(third)) twoTuples = twoTuples.plus(third, PersistentSet.empty());
-
-		PersistentSet<Node> oneTuples = twoTuples.get(third);
-		if (!oneTuples.contains(fourth)) oneTuples = oneTuples.plus(fourth);
-
+		oneTuples = oneTuples.plus(fourth);
 		twoTuples = twoTuples.minus(third).plus(third, oneTuples);
 		threeTuples = threeTuples.minus(second).plus(second, twoTuples);
 		debug("Setting transactional index to new value.");
