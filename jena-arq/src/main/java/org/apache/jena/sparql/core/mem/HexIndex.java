@@ -25,7 +25,6 @@ import static org.apache.jena.sparql.core.mem.QuadIndexForm.*;
 import static org.apache.jena.sparql.core.mem.Slot.*;
 
 import java.util.EnumMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -71,10 +70,9 @@ public class HexIndex implements QuadTable {
 	}
 
 	@Override
-	public Iterator<Node> listGraphNodes() {
-		// TODO square this cast away
-		return ((PMapQuadTable) indexBlock.get(GSPO)).local().get().entrySet().stream().map(Map.Entry::getKey)
-				.iterator();
+	public Stream<Node> listGraphNodes() {
+		// GSPO is specially equipped with an efficient listGraphNodes()
+		return indexBlock.get(GSPO).listGraphNodes();
 	}
 
 	@Override

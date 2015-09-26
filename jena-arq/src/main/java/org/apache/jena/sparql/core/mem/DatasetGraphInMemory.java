@@ -156,7 +156,7 @@ public class DatasetGraphInMemory extends DatasetGraphTriplesQuads implements Tr
 
 	@Override
 	public Iterator<Node> listGraphNodes() {
-		return access(() -> quadsIndex().listGraphNodes());
+		return access(() -> quadsIndex().listGraphNodes().iterator());
 	}
 
 	private Iterator<Quad> quadsFinder(final Node g, final Node s, final Node p, final Node o) {

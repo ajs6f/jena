@@ -19,7 +19,6 @@
 package org.apache.jena.sparql.core.mem;
 
 import static java.util.stream.Collectors.toSet;
-import static org.apache.jena.atlas.iterator.Iter.toSet;
 import static org.apache.jena.ext.com.google.common.collect.ImmutableSet.of;
 import static org.apache.jena.graph.Node.ANY;
 import static org.apache.jena.graph.NodeFactory.createBlankNode;
@@ -43,13 +42,13 @@ public class TestHexIndex extends QuadTableTest {
 	public void testListGraphNodes() {
 		final int nodesToTry = 50;
 		final HexIndex index = new HexIndex();
-		final Set<Node> graphNodes = new HashSet<>();
+		final Set<Node> graphNodes = new HashSet<>(nodesToTry);
 		index.begin(null);
 		for (int i = 0; i < nodesToTry; i++) {
 			final Node node = createBlankNode();
 			index.add(Quad.create(node, node, node, node));
 			graphNodes.add(node);
-			assertEquals(graphNodes, toSet(index.listGraphNodes()));
+			assertEquals(graphNodes, index.listGraphNodes().collect(toSet()));
 		}
 		index.end();
 	}

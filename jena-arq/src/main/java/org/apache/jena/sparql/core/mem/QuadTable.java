@@ -20,21 +20,20 @@ package org.apache.jena.sparql.core.mem;
 
 import static org.apache.jena.graph.Node.ANY;
 
-import java.util.Iterator;
 import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.Quad;
 
 /**
- * A simplex or multiplex index of {@link Quad}s. Implementations may wish to override {@link #listGraphNodes()} with a
+ * A simplex or multiplex table of {@link Quad}s. Implementations may wish to override {@link #listGraphNodes()} with a
  * more efficient implementation.
  *
  */
 public interface QuadTable extends TupleTable<Quad> {
 
 	/**
-	 * Search the index using a pattern of slots. {@link Node#ANY} or <code>null</code> will work as a wildcard.
+	 * Search the table using a pattern of slots. {@link Node#ANY} or <code>null</code> will work as a wildcard.
 	 *
 	 * @param g the graph node of the pattern
 	 * @param s the subject node of the pattern
@@ -45,12 +44,12 @@ public interface QuadTable extends TupleTable<Quad> {
 	Stream<Quad> find(Node g, Node s, Node p, Node o);
 
 	/**
-	 * Discover the graphs named in the index
+	 * Discover the graphs named in the table
 	 *
-	 * @return an {@link Iterator} of graph names used in this index
+	 * @return an {@link Stream} of graph names used in this table
 	 */
-	default Iterator<Node> listGraphNodes() {
-		return find(ANY, ANY, ANY, ANY).map(Quad::getGraph).distinct().iterator();
+	default Stream<Node> listGraphNodes() {
+		return find(ANY, ANY, ANY, ANY).map(Quad::getGraph).distinct();
 	}
 
 	@Override

@@ -25,6 +25,7 @@ import static org.apache.jena.sparql.core.mem.Slot.*;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -55,6 +56,11 @@ public enum QuadIndexForm implements Supplier<QuadTable> {
 				@Override
 				public void delete(final Quad q) {
 					_delete(q.getGraph(), q.getSubject(), q.getPredicate(), q.getObject());
+				}
+
+				@Override
+				public Stream<Node> listGraphNodes() {
+					return local().get().entrySet().stream().map(Entry::getKey);
 				}
 			};
 		}

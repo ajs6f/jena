@@ -26,7 +26,7 @@ import org.apache.jena.graph.Triple;
 public interface TripleTable extends TupleTable<Triple> {
 
 	/**
-	 * Search the index using a pattern of slots. {@link Node#ANY} or <code>null</code> will work as a wildcard.
+	 * Search the table using a pattern of slots. {@link Node#ANY} or <code>null</code> will work as a wildcard.
 	 *
 	 * @param s the subject node of the pattern
 	 * @param p the predicate node of the pattern
