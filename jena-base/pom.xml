@@ -54,9 +54,9 @@
     
     <!-- supports persistent data structures -->
     <dependency>
-      <groupId>org.pcollections</groupId>
-      <artifactId>pcollections</artifactId>
-      <version>2.1.2</version>
+      <groupId>org.clojure</groupId>
+      <artifactId>clojure</artifactId>
+      <version>1.7.0</version>
     </dependency>
     
 

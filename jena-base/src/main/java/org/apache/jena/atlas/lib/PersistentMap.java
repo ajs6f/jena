@@ -20,7 +20,6 @@ package org.apache.jena.atlas.lib;
 
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -38,10 +37,10 @@ public interface PersistentMap<K, V, SelfType extends PersistentMap<K, V, SelfTy
 
 	boolean containsKey(K key);
 
-	Set<Map.Entry<K, V>> entrySet();
+	Stream<Map.Entry<K, V>> entryStream();
 
 	default <R> Stream<R> descend(final Function<Entry<K, V>, Stream<R>> f) {
-		return entrySet().stream().flatMap(f);
+		return entryStream().flatMap(f);
 	}
 
 }

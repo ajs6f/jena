@@ -26,9 +26,11 @@ import org.apache.jena.atlas.lib.PersistentSet;
 import org.apache.jena.graph.Node;
 import org.apache.jena.sparql.core.mem.FourTupleMap.ThreeTupleMap;
 
+import clojure.lang.PersistentHashMap;
+
 public class FourTupleMap extends PMap<Node, ThreeTupleMap, FourTupleMap> {
 
-	private FourTupleMap(final org.pcollections.PMap<Node, ThreeTupleMap> wrappedMap) {
+	private FourTupleMap(final PersistentHashMap wrappedMap) {
 		super(wrappedMap);
 	}
 
@@ -38,12 +40,12 @@ public class FourTupleMap extends PMap<Node, ThreeTupleMap, FourTupleMap> {
 
 	@Override
 	public FourTupleMap plus(final Node key, final ThreeTupleMap value) {
-		return new FourTupleMap(wrappedMap.plus(key, value));
+		return new FourTupleMap((PersistentHashMap) wrappedMap.assoc(key, value));
 	}
 
 	@Override
 	public FourTupleMap minus(final Node key) {
-		return new FourTupleMap(wrappedMap.minus(key));
+		return new FourTupleMap((PersistentHashMap) wrappedMap.without(key));
 	}
 
 	static FourTupleMap empty() {
@@ -55,7 +57,7 @@ public class FourTupleMap extends PMap<Node, ThreeTupleMap, FourTupleMap> {
 	}
 
 	public static class ThreeTupleMap extends PMap<Node, TwoTupleMap, ThreeTupleMap> {
-		private ThreeTupleMap(final org.pcollections.PMap<Node, TwoTupleMap> wrappedMap) {
+		private ThreeTupleMap(final PersistentHashMap wrappedMap) {
 			super(wrappedMap);
 		}
 
@@ -65,12 +67,12 @@ public class FourTupleMap extends PMap<Node, ThreeTupleMap, FourTupleMap> {
 
 		@Override
 		public ThreeTupleMap plus(final Node key, final TwoTupleMap value) {
-			return new ThreeTupleMap(wrappedMap.plus(key, value));
+			return new ThreeTupleMap((PersistentHashMap) wrappedMap.assoc(key, value));
 		}
 
 		@Override
 		public ThreeTupleMap minus(final Node key) {
-			return new ThreeTupleMap(wrappedMap.minus(key));
+			return new ThreeTupleMap((PersistentHashMap) wrappedMap.without(key));
 		}
 
 		static ThreeTupleMap empty() {
@@ -84,7 +86,7 @@ public class FourTupleMap extends PMap<Node, ThreeTupleMap, FourTupleMap> {
 
 	public static class TwoTupleMap extends PMap<Node, PersistentSet<Node>, TwoTupleMap> {
 
-		private TwoTupleMap(final org.pcollections.PMap<Node, PersistentSet<Node>> wrappedMap) {
+		private TwoTupleMap(final PersistentHashMap wrappedMap) {
 			super(wrappedMap);
 		}
 
@@ -94,12 +96,12 @@ public class FourTupleMap extends PMap<Node, ThreeTupleMap, FourTupleMap> {
 
 		@Override
 		public TwoTupleMap plus(final Node key, final PersistentSet<Node> value) {
-			return new TwoTupleMap(wrappedMap.plus(key, value));
+			return new TwoTupleMap((PersistentHashMap) wrappedMap.assoc(key, value));
 		}
 
 		@Override
 		public TwoTupleMap minus(final Node key) {
-			return new TwoTupleMap(wrappedMap.minus(key));
+			return new TwoTupleMap((PersistentHashMap) wrappedMap.without(key));
 		}
 
 		static TwoTupleMap empty() {

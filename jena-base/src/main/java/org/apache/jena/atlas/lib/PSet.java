@@ -20,31 +20,31 @@ package org.apache.jena.atlas.lib;
 
 import java.util.stream.Stream;
 
-import org.pcollections.Empty;
+import clojure.lang.PersistentHashSet;
 
 public class PSet<E> implements PersistentSet<E> {
 
-	private final org.pcollections.PSet<E> wrappedSet;
+	private final PersistentHashSet wrappedSet;
 
 	public static <E> PSet<E> empty() {
-		return new PSet<>(Empty.set());
+		return new PSet<>(PersistentHashSet.create());
 	}
 
 	/**
 	 * @param wrappedSet
 	 */
-	private PSet(final org.pcollections.PSet<E> w) {
+	private PSet(final PersistentHashSet w) {
 		this.wrappedSet = w;
 	}
 
 	@Override
 	public PersistentSet<E> plus(final E e) {
-		return new PSet<>(wrappedSet.plus(e));
+		return new PSet<E>((PersistentHashSet) wrappedSet.cons(e));
 	}
 
 	@Override
 	public PersistentSet<E> minus(final E e) {
-		return new PSet<>(wrappedSet.minus(e));
+		return new PSet<E>((PersistentHashSet) wrappedSet.disjoin(e));
 	}
 
 	@Override

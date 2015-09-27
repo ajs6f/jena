@@ -19,29 +19,31 @@
 package org.apache.jena.atlas.lib;
 
 import java.util.Map.Entry;
-import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
-import org.pcollections.Empty;
+import clojure.lang.PersistentHashMap;
 
-public abstract class PMap<K, V, SelfType extends PMap<K,V, SelfType>> implements PersistentMap<K, V, SelfType> {
+public abstract class PMap<K, V, SelfType extends PMap<K, V, SelfType>> implements PersistentMap<K, V, SelfType> {
 
-	protected final org.pcollections.PMap<K, V> wrappedMap;
+	protected final clojure.lang.PersistentHashMap wrappedMap;
 
 	/**
 	 * @param wrappedMap
 	 */
-	protected PMap(final org.pcollections.PMap<K, V> wrappedMap) {
+	protected PMap(final clojure.lang.PersistentHashMap wrappedMap) {
 		this.wrappedMap = wrappedMap;
 	}
 
-
 	protected PMap() {
-		this(Empty.map());
+		this(PersistentHashMap.create());
 	}
 
 	@Override
 	public V get(final K key) {
-		return wrappedMap.get(key);
+		return (V) wrappedMap.valAt(key);
 	}
 
 	@Override
@@ -50,7 +52,8 @@ public abstract class PMap<K, V, SelfType extends PMap<K,V, SelfType>> implement
 	}
 
 	@Override
-	public Set<Entry<K, V>> entrySet() {
-		return wrappedMap.entrySet();
+	public Stream<Entry<K, V>> entryStream() {
+		final Spliterator<Entry<K, V>> spliterator = Spliterators.spliteratorUnknownSize(wrappedMap.iterator(), 0);
+		return StreamSupport.stream(() -> spliterator, 0, true);
 	}
 }

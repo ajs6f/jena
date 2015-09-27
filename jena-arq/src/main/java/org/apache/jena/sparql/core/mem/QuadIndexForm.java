@@ -60,7 +60,7 @@ public enum QuadIndexForm implements Supplier<QuadTable> {
 
 				@Override
 				public Stream<Node> listGraphNodes() {
-					return local().get().entrySet().stream().map(Entry::getKey);
+					return local().get().entryStream().map(Entry::getKey);
 				}
 			};
 		}
