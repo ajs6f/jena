@@ -35,6 +35,7 @@ import org.apache.jena.graph.Triple;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.shared.Lock;
 import org.apache.jena.shared.LockMRPlusSW;
+import org.apache.jena.shared.LockMRSW;
 import org.apache.jena.sparql.JenaTransactionException;
 import org.apache.jena.sparql.core.DatasetGraph;
 import org.apache.jena.sparql.core.DatasetGraphTriplesQuads;
@@ -52,6 +53,8 @@ public class DatasetGraphInMemory extends DatasetGraphTriplesQuads implements Tr
 	private final DatasetPrefixStorage prefixes = new DatasetPrefixStorageInMemory();
 
 	private final Lock writeLock = new LockMRPlusSW();
+	
+	private final Lock publicLock = new LockMRSW();
 
 	private Lock writeLock() {
 		return writeLock;
@@ -105,7 +108,7 @@ public class DatasetGraphInMemory extends DatasetGraphTriplesQuads implements Tr
 
 	@Override
 	public Lock getLock() {
-		return writeLock();
+		return publicLock;
 	}
 
 	/**
@@ -129,7 +132,7 @@ public class DatasetGraphInMemory extends DatasetGraphTriplesQuads implements Tr
 		if (isInTransaction()) throw new JenaTransactionException("Transactions cannot be nested!");
 		transactionType(readWrite);
 		isInTransaction(true);
-		getLock().enterCriticalSection(readWrite.equals(READ)); // get the dataset write lock, if needed.
+		writeLock().enterCriticalSection(readWrite.equals(READ)); // get the dataset write lock, if needed.
 		commitLock().readLock().lock(); // if a commit is proceeding, wait so that we see a coherent index state
 		try {
 			quadsIndex().begin(readWrite);
@@ -163,14 +166,16 @@ public class DatasetGraphInMemory extends DatasetGraphTriplesQuads implements Tr
 
 	}
 
-	@Override
-	public void end() {
-		quadsIndex().end();
-		defaultGraph().end();
-		isInTransaction(false);
-		transactionType(null);
-		getLock().leaveCriticalSection();
-	}
+    @Override
+    public void end() {
+        if (isInTransaction()) {
+            quadsIndex().end();
+            defaultGraph().end();
+            isInTransaction(false);
+            transactionType(null);
+            writeLock().leaveCriticalSection();
+        }
+    }
 
 	private <T> Iterator<T> access(final Supplier<Iterator<T>> source) {
 		if (!isInTransaction()) {
