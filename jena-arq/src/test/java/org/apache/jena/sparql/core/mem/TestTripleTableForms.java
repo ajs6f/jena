@@ -45,7 +45,7 @@ public class TestTripleTableForms extends AbstractTestTupleTableForms<TripleTabl
 
 	@Test
 	public void addAndRemoveSomeTriples() {
-		tableForms().map(TripleTableForm::get).map(table -> new AbstractTestTripleTable() {
+		tableForms().map(form -> form.apply(PMapTripleTable::new)).map(table -> new AbstractTestTripleTable() {
 
 			@Override
 			protected TripleTable table() {

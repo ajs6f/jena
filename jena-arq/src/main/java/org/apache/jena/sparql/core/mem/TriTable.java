@@ -30,20 +30,31 @@ import static org.apache.jena.sparql.core.mem.TupleSlot.SUBJECT ;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
 import org.apache.jena.graph.Triple;
 import org.apache.jena.query.ReadWrite;
+import org.apache.jena.sparql.core.TransactionalNotSupportedMixin;
 
 /**
  * A three-way {@link TripleTable} using all of the available forms in {@link TripleTableForm}.
  *
  */
 public class TriTable implements TripleTable {
-
-    private final Map<TripleTableForm, TripleTable> indexBlock = new EnumMap<TripleTableForm, TripleTable>(
-        tableForms().collect(toMap(x -> x, TripleTableForm::get)));
+    
+    private final Map<TripleTableForm, TripleTable> indexBlock;
+    
+    private final boolean transactional;
+    
+    /**
+     * @param constructor a function with which to construct new ordered node tables.
+     */
+    public TriTable(final Function<TripleTableForm, TripleTable> constructor) {
+        this.indexBlock = new EnumMap<>(tableForms().collect(toMap(form -> form, constructor)));
+        this.transactional = !indexBlock.values().stream().anyMatch(table -> table instanceof TransactionalNotSupportedMixin);
+    }
 
     /**
      * A block of three indexes to which we provide access as though they were one.
@@ -54,19 +65,19 @@ public class TriTable implements TripleTable {
 
     @Override
     public void commit() {
-        indexBlock().values().forEach(TripleTable::commit);
+        if (transactional) indexBlock().values().forEach(TripleTable::commit);
         end();
     }
 
     @Override
     public void abort() {
-        indexBlock().values().forEach(TripleTable::abort);
+        if (transactional) indexBlock().values().forEach(TripleTable::abort);
         end();
     }
 
     @Override
     public void end() {
-        indexBlock().values().forEach(TripleTable::end);
+        if (transactional) indexBlock().values().forEach(TripleTable::end);
     }
 
     @Override
@@ -95,7 +106,7 @@ public class TriTable implements TripleTable {
 
     @Override
     public void begin(final ReadWrite rw) {
-        indexBlock().values().forEach(table -> table.begin(rw));
+        if (transactional) indexBlock().values().forEach(table -> table.begin(rw));
     }
 
     @Override

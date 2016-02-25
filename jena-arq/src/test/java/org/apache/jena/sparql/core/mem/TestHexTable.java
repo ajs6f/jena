@@ -38,7 +38,7 @@ public class TestHexTable extends AbstractTestQuadTable {
 	@Test
 	public void testListGraphNodes() {
 		final int nodesToTry = 50;
-		final HexTable index = new HexTable();
+		final HexTable index = new HexTable(PMapQuadTable.constructor);
 		final Set<Node> graphNodes = new HashSet<>(nodesToTry);
 		index.begin(null);
 		for (int i = 0; i < nodesToTry; i++) {
@@ -53,7 +53,7 @@ public class TestHexTable extends AbstractTestQuadTable {
 	@Test
 	public void checkConcreteQueries() {
 		queryPatterns().filter(p -> !allWildcardQuery.equals(p)).map(TestHexTable::exampleFrom).forEach(testQuery -> {
-			final HexTable index = new HexTable();
+			final HexTable index = new HexTable(PMapQuadTable.constructor);
 			index.begin(null);
 			// add our sample quad
 			index.add(testTuple());
@@ -80,7 +80,7 @@ public class TestHexTable extends AbstractTestQuadTable {
 				pattern.contains(PREDICATE) ? sampleNode : ANY, pattern.contains(OBJECT) ? sampleNode : ANY);
 	}
 
-	private final HexTable testTable = new HexTable();
+	private final HexTable testTable = new HexTable(PMapQuadTable.constructor);
 
 	@Override
 	protected QuadTable table() {

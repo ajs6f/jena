@@ -19,8 +19,14 @@
 package org.apache.jena.sparql.core.mem;
 import static java.util.stream.Stream.empty;
 import static java.util.stream.Stream.of;
+import static org.apache.jena.graph.Node.ANY;
+import static org.apache.jena.sparql.core.Quad.create;
+import static org.apache.jena.sparql.core.Quad.unionGraph;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import org.apache.jena.atlas.lib.persistent.PMap;
@@ -29,6 +35,7 @@ import org.apache.jena.atlas.lib.tuple.TConsumer4;
 import org.apache.jena.atlas.lib.tuple.TFunction4;
 import org.apache.jena.atlas.lib.tuple.TupleMap;
 import org.apache.jena.graph.Node;
+import org.apache.jena.graph.Triple;
 import org.apache.jena.sparql.core.Quad;
 import org.apache.jena.sparql.core.mem.FourTupleMap.ThreeTupleMap;
 import org.apache.jena.sparql.core.mem.FourTupleMap.TwoTupleMap;
@@ -41,6 +48,18 @@ import org.slf4j.Logger;
  */
 public class PMapQuadTable extends PMapTupleTable<FourTupleMap, Quad, TConsumer4<Node>>implements QuadTable {
 
+    public static Function<QuadTableForm, QuadTable> constructor = form ->
+        form.name().startsWith("G") ? new PMapQuadTableStartingWithGraph(form)
+            : form.name().endsWith("G") ? new PMapQuadTableEndingWithGraph(form)
+                : new PMapQuadTable(form);
+    
+    /**
+     * @param order an internal order for this table
+     */
+    public PMapQuadTable(final QuadTableForm order) {
+        this("GSPO", order.name());
+    }
+    
     /**
      * @param order an internal order for this table
      */
@@ -167,5 +186,32 @@ public class PMapQuadTable extends PMapTupleTable<FourTupleMap, Quad, TConsumer4
                 }
             })));
         };
+    }
+    
+
+    public static class PMapQuadTableStartingWithGraph extends PMapQuadTable {
+
+        public PMapQuadTableStartingWithGraph(QuadTableForm order) {
+            super(order);
+        }
+
+        @Override
+        public Stream<Node> listGraphNodes() {
+            return local().get().entryStream().map(Entry::getKey);
+        }
+    }
+
+    public static class PMapQuadTableEndingWithGraph extends PMapQuadTable {
+
+        public PMapQuadTableEndingWithGraph(QuadTableForm order) {
+            super(order);
+        }
+
+        @Override
+        public Stream<Quad> findInUnionGraph(final Node s, final Node p, final Node o) {
+            final AtomicReference<Triple> mostRecentlySeen = new AtomicReference<>();
+            return find(ANY, s, p, o).map(Quad::asTriple).filter(t -> !mostRecentlySeen.getAndSet(t).equals(t))
+                    .map(t -> create(unionGraph, t));
+        }
     }
 }

@@ -104,7 +104,7 @@ public class DatasetGraphInMemory extends DatasetGraphTriplesQuads implements Tr
      * Default constructor.
      */
     public DatasetGraphInMemory() {
-        this(new HexTable(), new TriTable());
+        this(new HexTable(PMapQuadTable.constructor), new TriTable(PMapTripleTable::new));
     }
 
     /**

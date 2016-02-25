@@ -20,7 +20,7 @@ package org.apache.jena.sparql.core.mem;
 
 public class TestTriTable extends AbstractTestTripleTable {
 
-	TriTable testTable = new TriTable();
+	TriTable testTable = new TriTable(PMapTripleTable::new);
 
 	@Override
 	protected TripleTable table() {

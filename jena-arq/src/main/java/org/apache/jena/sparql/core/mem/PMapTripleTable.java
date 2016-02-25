@@ -43,6 +43,13 @@ public class PMapTripleTable extends PMapTupleTable<ThreeTupleMap, Triple, TCons
     /**
      * @param order an internal order for this table
      */
+    public PMapTripleTable(final TripleTableForm order) {
+        this(order.name());
+    }
+    
+    /**
+     * @param order an internal order for this table
+     */
     public PMapTripleTable(final String order) {
         this("SPO", order);
     }

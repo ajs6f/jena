@@ -33,11 +33,13 @@ import static org.apache.jena.sparql.core.mem.TupleSlot.SUBJECT ;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import org.apache.jena.graph.Node;
 import org.apache.jena.query.ReadWrite;
 import org.apache.jena.sparql.core.Quad;
+import org.apache.jena.sparql.core.TransactionalNotSupportedMixin;
 
 /**
  * A six-way {@link QuadTable} using all of the available forms in {@link QuadTableForm}. This class binds together all
@@ -47,14 +49,23 @@ import org.apache.jena.sparql.core.Quad;
  */
 public class HexTable implements QuadTable {
 
-    private final Map<QuadTableForm, QuadTable> indexBlock = new EnumMap<QuadTableForm, QuadTable>(
-        tableForms().collect(toMap(x -> x, QuadTableForm::get)));
+    private final Map<QuadTableForm, QuadTable> indexBlock;
+    
+    private final boolean transactional;
 
     /**
      * A block of six indexes to which we provide access as though they were one.
      */
     protected Map<QuadTableForm, QuadTable> indexBlock() {
         return indexBlock;
+    }
+    
+    /**
+     * @param constructor a function with which to construct new ordered node tables.
+     */
+    public HexTable(final Function<QuadTableForm, QuadTable> constructor) {
+        this.indexBlock = new EnumMap<>(tableForms().collect(toMap(form -> form, constructor)));
+        this.transactional = !indexBlock.values().stream().anyMatch(table -> table instanceof TransactionalNotSupportedMixin);
     }
 
     @Override
@@ -96,17 +107,17 @@ public class HexTable implements QuadTable {
 
     @Override
     public void begin(final ReadWrite rw) {
-        indexBlock().values().forEach(table -> table.begin(rw));
+        if (transactional) indexBlock().values().forEach(table -> table.begin(rw));
     }
 
     @Override
     public void end() {
-        indexBlock().values().forEach(QuadTable::end);
+        if (transactional) indexBlock().values().forEach(QuadTable::end);
     }
 
     @Override
     public void commit() {
-        indexBlock().values().forEach(QuadTable::commit);
+        if (transactional) indexBlock().values().forEach(QuadTable::commit);
     }
 
     @Override

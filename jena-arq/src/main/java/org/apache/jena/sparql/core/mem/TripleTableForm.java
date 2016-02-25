@@ -23,6 +23,7 @@ import static java.util.EnumSet.of;
 import static org.apache.jena.sparql.core.mem.TupleSlot.*;
 
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -31,7 +32,7 @@ import java.util.stream.Stream;
  * Forms for triple indexes.
  *
  */
-public enum TripleTableForm implements Supplier<TripleTable>, Predicate<Set<TupleSlot>> {
+public enum TripleTableForm implements Function<Function<String,TripleTable>,TripleTable>, Predicate<Set<TupleSlot>> {
 
     /**
      * Subject-predicate-object.
@@ -52,8 +53,8 @@ public enum TripleTableForm implements Supplier<TripleTable>, Predicate<Set<Tupl
     }
     
     @Override
-    public TripleTable get() {
-        return new PMapTripleTable(name());
+    public TripleTable apply(final Function<String,TripleTable> constructor) {
+        return constructor.apply(name());
     }
 
     /**

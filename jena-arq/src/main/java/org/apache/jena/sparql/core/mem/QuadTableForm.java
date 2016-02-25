@@ -52,7 +52,7 @@ public enum QuadTableForm implements Supplier<QuadTable>,Predicate<Set<TupleSlot
      */
     GSPO(asList(GRAPH, SUBJECT, PREDICATE, OBJECT)) {
         @Override
-        public PMapQuadTable get() {
+        public QuadTable get() {
             return new PMapQuadTable(name()) {
 
                 @Override
@@ -66,14 +66,25 @@ public enum QuadTableForm implements Supplier<QuadTable>,Predicate<Set<TupleSlot
     /**
      * Graph-object-predicate-subject.
      */
-    GOPS(asList(GRAPH, OBJECT, PREDICATE, SUBJECT)),
+    GOPS(asList(GRAPH, OBJECT, PREDICATE, SUBJECT)) {
+        @Override
+        public QuadTable get() {
+            return new PMapQuadTable(name()) {
+
+                @Override
+                public Stream<Node> listGraphNodes() {
+                    return local().get().entryStream().map(Entry::getKey);
+                }
+            };
+        }
+    },
 
     /**
      * Subject-predicate-object-graph.
      */
     SPOG(asList(SUBJECT, PREDICATE, OBJECT, GRAPH)) {
         @Override
-        public PMapQuadTable get() {
+        public QuadTable get() {
             return new PMapQuadTable(name()) {
 
                 @Override
@@ -102,7 +113,7 @@ public enum QuadTableForm implements Supplier<QuadTable>,Predicate<Set<TupleSlot
      */
     OPSG(asList(OBJECT, PREDICATE, SUBJECT, GRAPH)) {
         @Override
-        public PMapQuadTable get() {
+        public QuadTable get() {
             return new PMapQuadTable(name()) {
                 
                 @Override
@@ -117,7 +128,7 @@ public enum QuadTableForm implements Supplier<QuadTable>,Predicate<Set<TupleSlot
     };
     
     @Override
-    public PMapQuadTable get() {
+    public QuadTable get() {
         return new PMapQuadTable(name());
     }
 
